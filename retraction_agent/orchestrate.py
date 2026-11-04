@@ -338,16 +338,12 @@ def _ensure_audit(agent: str, references: list[dict], calls: list[dict], catalog
     for ref in references:
         doi = ref.get("doi")
         title = ref.get("title")
-        author = ref.get("author")
         if doi and not _called(calls, "rw_lookup_doi", doi=doi):
             args = {"doi": doi}
-            calls.append({"agent": agent, "name": "rw_lookup_doi", "args": args, "result": runner("rw_lookup_doi", args)})
+            calls.append(_harness_call(agent, "rw_lookup_doi", args, runner("rw_lookup_doi", args)))
         elif title and not doi and not _called(calls, "rw_lookup_title", title=title):
             args = {"title": title}
-            calls.append({"agent": agent, "name": "rw_lookup_title", "args": args, "result": runner("rw_lookup_title", args)})
-        elif author and not doi and not title and not _called(calls, "rw_lookup_author", author=author):
-            args = {"author": author}
-            calls.append({"agent": agent, "name": "rw_lookup_author", "args": args, "result": runner("rw_lookup_author", args)})
+            calls.append(_harness_call(agent, "rw_lookup_title", args, runner("rw_lookup_title", args)))
 
 
 def _ensure_pattern(agent: str, task: dict, calls: list[dict], catalog) -> None:
@@ -355,14 +351,14 @@ def _ensure_pattern(agent: str, task: dict, calls: list[dict], catalog) -> None:
     for journal in task["journals"]:
         if not _called(calls, "rw_pattern", journal=journal):
             args = {"journal": journal}
-            calls.append({"agent": agent, "name": "rw_pattern", "args": args, "result": runner("rw_pattern", args)})
+            calls.append(_harness_call(agent, "rw_pattern", args, runner("rw_pattern", args)))
     for publisher in task["publishers"]:
         if not _called(calls, "rw_pattern", publisher=publisher):
             args = {"publisher": publisher}
-            calls.append({"agent": agent, "name": "rw_pattern", "args": args, "result": runner("rw_pattern", args)})
+            calls.append(_harness_call(agent, "rw_pattern", args, runner("rw_pattern", args)))
     if task["top_publishers"] and not any(call["name"] == "rw_top_publishers" for call in calls):
         args = {"limit": int(task["limit"])}
-        calls.append({"agent": agent, "name": "rw_top_publishers", "args": args, "result": runner("rw_top_publishers", args)})
+        calls.append(_harness_call(agent, "rw_top_publishers", args, runner("rw_top_publishers", args)))
 
 
 def _ensure_crossref(dois, titles, calls, crossref, datacite, catalog, prior, title_meta=None) -> None:
@@ -373,33 +369,22 @@ def _ensure_crossref(dois, titles, calls, crossref, datacite, catalog, prior, ti
         if not _doi_in_audit(prior + calls, doi):
             looked = audit_runner(catalog)("rw_lookup_doi", {"doi": doi})
             calls.append(
-                {
-                    "agent": "audit-researcher-1",
-                    "name": "rw_lookup_doi",
-                    "args": {"doi": doi, "after_title_match": True},
-                    "result": looked,
-                }
+                _harness_call("audit-researcher-1", "rw_lookup_doi", {"doi": doi, "after_title_match": True}, looked)
             )
         if not _called(prior + calls, "doi_agency", doi=doi):
             result = runner("doi_agency", {"doi": doi})
-            calls.append(
-                {"agent": "crossref-researcher", "name": "doi_agency", "args": {"doi": doi}, "result": result}
-            )
+            calls.append(_harness_call("crossref-researcher", "doi_agency", {"doi": doi}, result))
             if _failed(result):
                 break
         registration = _registration(prior + calls, doi)
         if registration == "crossref" and not _called(prior + calls, "crossref_doi", doi=doi):
             result = runner("crossref_doi", {"doi": doi})
-            calls.append(
-                {"agent": "crossref-researcher", "name": "crossref_doi", "args": {"doi": doi}, "result": result}
-            )
+            calls.append(_harness_call("crossref-researcher", "crossref_doi", {"doi": doi}, result))
             if _failed(result):
                 break
         elif registration == "other" and datacite is not None and not _called(prior + calls, "datacite_work", doi=doi):
             result = datacite.get_work(doi)
-            calls.append(
-                {"agent": "crossref-researcher", "name": "datacite_work", "args": {"doi": doi}, "result": result}
-            )
+            calls.append(_harness_call("crossref-researcher", "datacite_work", {"doi": doi}, result))
             if _failed(result):
                 break
     if _source_failed(calls):
@@ -409,7 +394,7 @@ def _ensure_crossref(dois, titles, calls, crossref, datacite, catalog, prior, ti
             continue
         args = {"title": title}
         result = runner("crossref_title", args)
-        calls.append({"agent": "crossref-researcher", "name": "crossref_title", "args": args, "result": result})
+        calls.append(_harness_call("crossref-researcher", "crossref_title", args, result))
         if _failed(result):
             break
     _follow_clear_titles(calls, crossref, datacite, catalog, prior, title_meta or {})
@@ -445,43 +430,22 @@ def _follow_clear_titles(calls, crossref, datacite, catalog, prior, title_meta=N
         if not _doi_in_audit(prior + calls, doi):
             looked = audit_runner(catalog)("rw_lookup_doi", {"doi": doi})
             calls.append(
-                {
-                    "agent": "audit-researcher-1",
-                    "name": "rw_lookup_doi",
-                    "args": {"doi": doi, "after_clear_title": True},
-                    "result": looked,
-                }
+                _harness_call("audit-researcher-1", "rw_lookup_doi", {"doi": doi, "after_clear_title": True}, looked)
             )
         if not _called(prior + calls, "doi_agency", doi=doi):
             agency_result = runner("doi_agency", {"doi": doi})
-            calls.append(
-                {
-                    "agent": "crossref-researcher",
-                    "name": "doi_agency",
-                    "args": {"doi": doi},
-                    "result": agency_result,
-                }
-            )
+            calls.append(_harness_call("crossref-researcher", "doi_agency", {"doi": doi}, agency_result))
             if _failed(agency_result):
                 break
         if _registration(prior + calls, doi) != "crossref":
             if _registration(prior + calls, doi) == "other" and datacite is not None:
                 result = datacite.get_work(doi)
-                calls.append(
-                    {"agent": "crossref-researcher", "name": "datacite_work", "args": {"doi": doi}, "result": result}
-                )
+                calls.append(_harness_call("crossref-researcher", "datacite_work", {"doi": doi}, result))
                 if _failed(result):
                     break
             continue
         result = runner("crossref_doi", {"doi": doi})
-        calls.append(
-            {
-                "agent": "crossref-researcher",
-                "name": "crossref_doi",
-                "args": {"doi": doi},
-                "result": result,
-            }
-        )
+        calls.append(_harness_call("crossref-researcher", "crossref_doi", {"doi": doi}, result))
         if _failed(result):
             break
 
@@ -522,7 +486,22 @@ def _failed(result: str) -> bool:
 
 
 def _source_failed(calls: list[dict]) -> bool:
-    return any(call["agent"] == "crossref-researcher" and _failed(call["result"]) for call in calls)
+    return any(_is_agent(call["agent"], "crossref-researcher") and _failed(call["result"]) for call in calls)
+
+
+def _harness_agent(agent: str) -> str:
+    suffix = " (harness)"
+    if agent.endswith(suffix):
+        return agent
+    return agent + suffix
+
+
+def _harness_call(agent: str, name: str, args: dict, result: str) -> dict:
+    return {"agent": _harness_agent(agent), "name": name, "args": args, "result": result}
+
+
+def _is_agent(agent: str, name: str) -> bool:
+    return agent == name or agent == _harness_agent(name)
 
 
 def _pending(calls: list[dict], catalog) -> list[dict]:

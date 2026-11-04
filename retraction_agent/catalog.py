@@ -62,7 +62,6 @@ class Catalog:
         self.by_title = indexes["title"]
         self.by_journal = indexes["journal"]
         self.by_publisher = indexes["publisher"]
-        self.by_author = indexes["author"]
         self.journal_casefold = indexes["journal_casefold"]
         self.publisher_casefold = indexes["publisher_casefold"]
         self.row_count = len(rows)
@@ -125,13 +124,6 @@ class Catalog:
         payload = self._row_payload(query_key="query", query=title, ids=ids)
         payload["normalized_title"] = key
         payload["exact_match"] = payload["total"] > 0
-        return payload
-
-    def lookup_author(self, author: str) -> dict:
-        key = " ".join((author or "").split()).casefold()
-        ids = list(self.by_author.get(key, []))
-        payload = self._row_payload(query_key="query_author", query=author, ids=ids)
-        payload["match"] = "full author token, casefold, not a substring"
         return payload
 
     def pattern(self, *, journal: str | None = None, publisher: str | None = None) -> dict:
@@ -262,7 +254,6 @@ def _parse(raw: bytes) -> tuple[dict, dict, Counter]:
     titles: dict[str, list[str]] = defaultdict(list)
     journals: dict[str, list[str]] = defaultdict(list)
     publishers: dict[str, list[str]] = defaultdict(list)
-    authors: dict[str, list[str]] = defaultdict(list)
     journal_casefold: dict[str, set[str]] = defaultdict(set)
     publisher_casefold: dict[str, set[str]] = defaultdict(set)
     natures: Counter = Counter()
@@ -307,15 +298,12 @@ def _parse(raw: bytes) -> tuple[dict, dict, Counter]:
         if row["publisher"]:
             publishers[row["publisher"]].append(record_id)
             publisher_casefold[row["publisher"].casefold()].add(row["publisher"])
-        for author in author_tokens:
-            authors[author.casefold()].append(record_id)
     indexes = {
         "original": dict(original),
         "notice": dict(notice),
         "title": dict(titles),
         "journal": dict(journals),
         "publisher": dict(publishers),
-        "author": dict(authors),
         "journal_casefold": {key: sorted(values) for key, values in journal_casefold.items()},
         "publisher_casefold": {key: sorted(values) for key, values in publisher_casefold.items()},
     }

@@ -97,6 +97,13 @@ main {
 
 .samples { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 
+.pending {
+  margin: 0 0 8px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--accent);
+}
+
 .samples button, .actions button {
   font: inherit;
   border-radius: 999px;

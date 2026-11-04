@@ -81,6 +81,29 @@ async function loadMeta() {
   }
 }
 
+const pending = document.querySelector("#pending");
+let pendingTimer = null;
+
+function startPending() {
+  const started = Date.now();
+  const tick = () => {
+    const seconds = Math.floor((Date.now() - started) / 1000);
+    pending.hidden = false;
+    pending.textContent = `Audits can take a few minutes (${seconds}s)`;
+  };
+  tick();
+  pendingTimer = setInterval(tick, 1000);
+}
+
+function clearPending() {
+  if (pendingTimer) {
+    clearInterval(pendingTimer);
+    pendingTimer = null;
+  }
+  pending.hidden = true;
+  pending.textContent = "";
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const message = question.value.trim();
@@ -88,19 +111,31 @@ form.addEventListener("submit", async (event) => {
   addBubble("user", message);
   question.value = "";
   send.disabled = true;
+  startPending();
   try {
     const response = await fetch("/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message, session_id: sessionId }),
     });
-    const body = await response.json();
+    if (!response.ok) {
+      addBubble("assistant", `The audit request failed (HTTP ${response.status}). Nothing was checked. Try again.`);
+      return;
+    }
+    let body;
+    try {
+      body = await response.json();
+    } catch (error) {
+      addBubble("assistant", "The audit request returned a response that was not JSON. Nothing was checked. Try again.");
+      return;
+    }
     sessionId = body.session_id || sessionId;
     addBubble("assistant", body.response || "No response.");
     showTools(body.tool_calls || []);
   } catch (error) {
-    addBubble("assistant", "The request failed before a response arrived.");
+    addBubble("assistant", "The audit request did not reach the server. Check the connection and try again.");
   } finally {
+    clearPending();
     send.disabled = false;
   }
 });

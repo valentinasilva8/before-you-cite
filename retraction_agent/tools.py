@@ -36,21 +36,6 @@ AUDIT_TOOLS = [
             },
         },
     },
-    {
-        "type": "function",
-        "function": {
-            "name": "rw_lookup_author",
-            "description": (
-                "Match one full author token from the extract, casefold. "
-                "Wang does not match Wangari. Not a substring search."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {"author": {"type": "string"}},
-                "required": ["author"],
-            },
-        },
-    },
 ]
 
 PATTERN_TOOLS = [
@@ -197,8 +182,6 @@ def audit_runner(catalog: Catalog):
             return _dump(catalog.lookup_doi(str(args.get("doi") or "")))
         if name == "rw_lookup_title":
             return _dump(catalog.lookup_title(str(args.get("title") or "")))
-        if name == "rw_lookup_author":
-            return _dump(catalog.lookup_author(str(args.get("author") or "")))
         return _dump({"ok": False, "error": "unknown_tool", "name": name})
 
     return run

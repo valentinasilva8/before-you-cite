@@ -43,19 +43,24 @@ _SKIP_PREFIXES = (
 )
 
 DEFAULT_ASK = (
-    "Which paper, author, journal, or publisher should I check? "
+    "Which paper, journal, or publisher should I check? "
     "A topic alone is not enough to search this extract. "
-    "Paste a DOI, a bibliography of up to 25 references, an author name as it appears "
-    "in the file, or the journal or publisher string from the extract. I will not pick a paper for you. "
+    "Paste a DOI, a bibliography of up to 25 references, "
+    "or the journal or publisher string from the extract. I will not pick a paper for you. "
     "Paste the full citation as it was written: title, authors, and link, not the link alone."
+)
+
+NAME_ONLY_ASK = (
+    "Names are not unique, so I will not look people up by name. "
+    "Paste a DOI, a title, a journal, or a publisher."
 )
 
 LEAD_PROMPT = """You are the lead for Before You Cite. You do not answer from memory. You do not see researcher scratchpads.
 
 Call submit_plan exactly once.
-- action "ask" when the user names no DOI, title, author, journal, or publisher. A topic such as CRISPR is this case. Ask one question. Do not pick a paper. Do not search subject strings.
-- action "dispatch" when they name a DOI, a title, an author, a journal, a publisher, or ask for the publishers with the most notice rows.
-- Put each DOI, title, or author in references. Copy the pasted title, first author, and year onto a DOI reference. Do not invent a DOI for a title.
+- action "ask" when the user names no DOI, title, journal, or publisher. A topic such as CRISPR is this case. A person's name alone is also this case. Names are not unique, so do not look people up by name. Ask for a DOI, a title, a journal, or a publisher. Ask one question. Do not pick a paper. Do not search subject strings.
+- action "dispatch" when they name a DOI, a title, a journal, a publisher, or ask for the publishers with the most notice rows.
+- Put each DOI or title in references. Copy the pasted title, first author, and year onto a DOI reference. Do not invent a DOI for a title. Do not send a person as someone to look up.
 - Journal and publisher strings go in journals or publishers exactly as typed. Do not rewrite PLOS ONE as PLoS One and do not rewrite The Lancet as Lancet.
 - top_publishers true when they want publishers ranked by notice rows, reason tokens, or batch dates. That is not a rate.
 - Never dispatch a guess for an unconfirmed title. If a previous turn is waiting on confirmation and the user confirms, put the confirmed DOI or the exact title they typed into references.
@@ -64,7 +69,7 @@ Call submit_plan exactly once.
 
 AUDIT_PROMPT = """You are {agent}, one audit researcher. Your message list is only this task. You do not see the user chat or any other researcher.
 
-Call rw_lookup_doi once for each DOI, rw_lookup_title once for each title that has no DOI, and rw_lookup_author once for each author that has no DOI and no title.
+Call rw_lookup_doi once for each DOI and rw_lookup_title once for each title that has no DOI. Do not look people up by name.
 Use the strings in the task. Do not call Crossref. Do not add facts from memory.
 After the tools return, stop. One short sentence is enough.
 """
@@ -225,6 +230,45 @@ def quoted_strings(message: str) -> list[str]:
     return [match.strip() for match in _QUOTED.findall(message or "") if match.strip()]
 
 
+def names_only_a_person(message: str) -> bool:
+    """True when the message names a person and no DOI, title, journal, or publisher."""
+    if parse_references(message) or wants_top_publishers(message):
+        return False
+    lowered = (message or "").casefold()
+    if quoted_strings(message) and ("journal" in lowered or "publisher" in lowered):
+        return False
+    tokens = re.findall(r"\b[A-Z][a-zA-Z'\-]{1,}\b", message or "")
+    names = [token for token in tokens if token.casefold() not in _NAME_WORDS]
+    if len(names) >= 2:
+        return True
+    return len(names) == 1 and bool(re.match(r"^\s*(please\s+)?(check|look up|audit|search)\b", lowered))
+
+
+_NAME_WORDS = {
+    "has",
+    "the",
+    "work",
+    "on",
+    "been",
+    "retracted",
+    "check",
+    "look",
+    "up",
+    "please",
+    "audit",
+    "this",
+    "paper",
+    "journal",
+    "publisher",
+    "title",
+    "about",
+    "what",
+    "which",
+    "show",
+    "list",
+}
+
+
 def wants_top_publishers(message: str) -> bool:
     lowered = (message or "").casefold()
     if "publisher" not in lowered:
@@ -283,7 +327,14 @@ def finalize_plan(message: str, model_plan: dict | None, pending: list[dict]) ->
                 plan["publishers"].append(name)
     if wants_top_publishers(message):
         plan["top_publishers"] = True
+    plan["references"] = [
+        ref for ref in plan["references"] if ref.get("doi") or ref.get("title") or ref.get("not_checkable")
+    ]
     has_work = bool(plan["references"] or plan["journals"] or plan["publishers"] or plan["top_publishers"])
+    if names_only_a_person(message) and not has_work:
+        plan["action"] = "ask"
+        plan["ask"] = NAME_ONLY_ASK
+        return plan
     if has_work:
         plan["action"] = "dispatch"
     elif plan["action"] != "ask":
@@ -336,12 +387,10 @@ def _clean_refs(refs: list) -> list[dict]:
             ref["doi"] = doi
         if title:
             ref["title"] = title
-        if author:
+        if author and (doi or title):
             ref["author"] = author
         if year and (doi or title):
             ref["year"] = year
-        if ref.get("author") and not ref.get("doi") and not ref.get("title"):
-            ref = {"author": ref["author"]}
         if ref:
             cleaned.append(ref)
     return cleaned
@@ -351,7 +400,6 @@ def _merge_refs(primary: list[dict], secondary: list[dict]) -> list[dict]:
     merged = []
     dois = set()
     titles = set()
-    authors = set()
     raws = set()
     for ref in list(primary) + list(secondary):
         if ref.get("not_checkable"):
@@ -392,10 +440,4 @@ def _merge_refs(primary: list[dict], secondary: list[dict]) -> list[dict]:
                 item["year"] = str(year)
             merged.append(item)
             continue
-        if author:
-            key = author.casefold()
-            if key in authors:
-                continue
-            authors.add(key)
-            merged.append({"author": author})
     return merged

@@ -5,7 +5,7 @@ from retraction_agent.orchestrate import handle_turn
 from retraction_agent.identity import EXISTS_NO_INTEGRITY
 from retraction_agent.planning import parse_references
 from retraction_agent.samples import INTEGRITY_SAMPLE, SAMPLE_1_TURN_1, SAMPLE_1_TURN_2, SAMPLE_3
-from tests.fakes import DRAFT, FakeCrossref, Reply, TracingCatalog, scripted_complete
+from tests.fakes import DRAFT, FakeCrossref, Reply, ToolCall, TracingCatalog, scripted_complete
 
 
 def test_bibliography_is_csv_then_crossref_and_strips_guesses():
@@ -31,7 +31,7 @@ def test_bibliography_is_csv_then_crossref_and_strips_guesses():
     names = [call["name"] for call in first["tool_calls"]]
     assert names.index("rw_lookup_doi") < names.index("crossref_doi")
     assert "crossref_title" in names
-    assert any(call["agent"] == "audit-researcher-1" for call in first["tool_calls"])
+    assert any(call["agent"] == "audit-researcher-1 (harness)" for call in first["tool_calls"])
     assert all(isinstance(call["result"], str) for call in first["tool_calls"])
     assert all(set(call) == {"agent", "name", "args", "result"} for call in first["tool_calls"])
 
@@ -59,6 +59,54 @@ def test_writer_is_called_without_tools():
     )
     assert complete.state["writer_tools"]
     assert all(tools is None for tools in complete.state["writer_tools"])
+
+
+def test_a_person_name_alone_is_not_looked_up():
+    def complete(messages, tools):
+        if messages[0]["content"].startswith("You are the lead"):
+            return Reply("", [ToolCall("submit_plan", {"action": "dispatch", "references": [{"author": "Ayman M Atta"}]})])
+        raise AssertionError("researchers should not run")
+
+    result = handle_turn(
+        {"messages": []},
+        "Check Ayman M Atta",
+        complete_fn=complete,
+        catalog=get_catalog(),
+        crossref=FakeCrossref(),
+    )
+    text = result["response"]
+    assert "Names are not unique, so I will not look people up by name." in text
+    assert "DOI" in text and "title" in text and "journal" in text and "publisher" in text
+    assert not any(
+        call["name"].startswith("rw_") or call["name"].startswith("crossref") or call["name"] in {"doi_agency", "datacite_work"}
+        for call in result["tool_calls"]
+    )
+
+
+def test_a_skipped_lookup_is_labeled_harness():
+    def complete(messages, tools):
+        system = messages[0]["content"]
+        if system.startswith("You are the lead"):
+            return Reply("", [ToolCall("submit_plan", {"action": "dispatch", "references": []})])
+        if system.startswith("You are audit-researcher-1") and not any(item.get("role") == "tool" for item in messages):
+            return Reply("", [ToolCall("rw_lookup_doi", {"doi": "10.1000/kept"})])
+        if system.startswith("You are the writer"):
+            return Reply("Snapshot fb5f174f. No record is a data limit.")
+        return Reply("done")
+
+    result = handle_turn(
+        {"messages": []},
+        "1. 10.1000/kept\n2. 10.1000/skipped",
+        complete_fn=complete,
+        catalog=get_catalog(),
+        crossref=FakeCrossref(),
+    )
+    lookups = [call for call in result["tool_calls"] if call["name"] == "rw_lookup_doi"]
+    by_doi = {call["args"]["doi"]: call for call in lookups}
+    assert by_doi["10.1000/kept"]["agent"] == "audit-researcher-1"
+    assert by_doi["10.1000/skipped"]["agent"] == "audit-researcher-1 (harness)"
+    assert set(by_doi["10.1000/skipped"]) == {"agent", "name", "args", "result"}
+    assert isinstance(by_doi["10.1000/skipped"]["result"], str)
 
 
 def test_vague_topic_asks_and_does_not_research():
@@ -127,7 +175,7 @@ def test_twenty_five_references_make_five_audit_researchers():
     lookups = [call for call in result["tool_calls"] if call["name"] == "rw_lookup_doi"]
     assert len(lookups) == 25
     agents = {call["agent"] for call in lookups}
-    assert agents == {f"audit-researcher-{index}" for index in range(1, 6)}
+    assert agents == {f"audit-researcher-{index} (harness)" for index in range(1, 6)}
     assert len(crossref.work_calls) == 25
 
 

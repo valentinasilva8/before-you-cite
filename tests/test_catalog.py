@@ -44,16 +44,12 @@ def test_mixed_case_doi_returns_both_rows_once():
     assert found["nature_counts"]["Retraction"] == 1
 
 
-def test_february_6_and_author_token_and_unavailable():
+def test_february_6_and_unavailable_doi():
     catalog = get_catalog()
     assert catalog.rows["4036"]["retraction_date"] == "2/6/2010 0:00"
     assert catalog.rows["4036"]["retraction_date_iso"] == "2010-02-06"
-    assert "70104" in catalog.by_author["ayman m atta"]
-    author = catalog.lookup_author("Ayman M Atta")
-    assert author["total"] > 25
-    assert author["truncated"] is True
-    assert "70104" not in catalog.by_author.get("ayman", [])
-    assert "70104" not in catalog.lookup_author("Ayman")["record_ids"]
+    assert "Ayman M Atta" in catalog.rows["70104"]["authors"]
+    assert not hasattr(catalog, "lookup_author")
     assert catalog.lookup_doi("unavailable")["total"] == 0
 
 
