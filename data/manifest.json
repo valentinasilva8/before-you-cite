@@ -1,0 +1,42 @@
+{
+  "commit": "fb5f174f8476824deaf340693f9a819ce5e29ded",
+  "commit_short": "fb5f174f",
+  "committed_at": "2026-11-03T23:00:12Z",
+  "source": "https://gitlab.com/crossref/retraction-watch-data",
+  "message": "Retraction Watch data for 2026-11-03",
+  "byte_size": 67868852,
+  "sha256": "e5351ee51ab3f1da7fe98b3bd6c5c58049b8bff4705949ef6fd4f1a1315dd0ea",
+  "gzip_sha256": "c4c7b7bce5fa0ef586c6f829dbf127ba71122fea48e5aa0a3c62050763351cab",
+  "row_count": 73597,
+  "nature_counts": {
+    "Correction": 1545,
+    "Expression of concern": 3734,
+    "Reinstatement": 163,
+    "Retraction": 68155
+  },
+  "columns": [
+    "Record ID",
+    "Title",
+    "Subject",
+    "Institution",
+    "Journal",
+    "Publisher",
+    "Country",
+    "Author",
+    "URLS",
+    "ArticleType",
+    "RetractionDate",
+    "RetractionDOI",
+    "RetractionPubMedID",
+    "OriginalPaperDate",
+    "OriginalPaperDOI",
+    "OriginalPaperPubMedID",
+    "RetractionNature",
+    "Reason",
+    "Paywalled",
+    "Notes",
+    ""
+  ],
+  "license": "CC0",
+  "credit": "Retraction Watch database, distributed by Crossref."
+}

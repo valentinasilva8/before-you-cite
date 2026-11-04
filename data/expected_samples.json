@@ -1,0 +1,664 @@
+{
+  "snapshot": {
+    "commit": "fb5f174f8476824deaf340693f9a819ce5e29ded",
+    "commit_short": "fb5f174f",
+    "committed_at": "2026-11-03T23:00:12Z",
+    "rows": 73597,
+    "sha256": "e5351ee51ab3f1da7fe98b3bd6c5c58049b8bff4705949ef6fd4f1a1315dd0ea",
+    "byte_size": 67868852,
+    "nature_counts": {
+      "Correction": 1545,
+      "Expression of concern": 3734,
+      "Reinstatement": 163,
+      "Retraction": 68155
+    }
+  },
+  "sample1": {
+    "turn1": "Audit this bibliography against the shipped extract, then Crossref. Do not guess a title.\n\n1. 10.3390/nano10122325\n2. 10.1038/s41586-021-03819-2\n3. Modeling Geometry and Semantics of Physical Damages",
+    "turn2": "Yes, use this exact title:\nModeling Geometry and Semantics of Physical Damages using IFC",
+    "nano": {
+      "record_id": "70104",
+      "title": "Magnetic Ionic Liquid Nanocatalyst to Improve Mechanical and Thermal Properties of Epoxy Nanocomposites",
+      "journal": "Nanomaterials",
+      "publisher": "MDPI",
+      "authors": [
+        "Ayman M Atta",
+        "Hamad A Al-Lohedan",
+        "Ahmed M Tawfeek",
+        "Nourah I Sabeela"
+      ],
+      "urls": [],
+      "retraction_date": "2/25/2026 0:00",
+      "retraction_date_iso": "2026-02-25",
+      "retraction_doi": "10.3390/nano16050293",
+      "retraction_doi_raw": "10.3390/nano16050293",
+      "original_date": "11/23/2020 0:00",
+      "original_date_iso": "2020-11-23",
+      "original_doi": "10.3390/nano10122325",
+      "original_doi_raw": "10.3390/nano10122325",
+      "retraction_pubmed": "41746171",
+      "original_pubmed": "33255359",
+      "nature": "Retraction",
+      "reasons": [
+        "Concerns/Issues about Data",
+        "Concerns/Issues about Image",
+        "Investigation by Journal/Publisher"
+      ],
+      "paywalled": "No",
+      "notes_present": false
+    },
+    "alphafold": {
+      "doi": "10.1038/s41586-021-03819-2",
+      "rows": 0
+    },
+    "exact_title": {
+      "record_id": "70548",
+      "title": "Modeling Geometry and Semantics of Physical Damages using IFC",
+      "journal": "EG-ICE 2020 Workshop on Intelligent Computing in Engineering",
+      "publisher": "Technische Universitat Berlin",
+      "authors": [
+        "Mathias Artus",
+        "Christian Koch"
+      ],
+      "urls": [],
+      "retraction_date": "10/18/2023 0:00",
+      "retraction_date_iso": "2023-10-18",
+      "retraction_doi": null,
+      "retraction_doi_raw": "unavailable",
+      "original_date": "6/30/2020 0:00",
+      "original_date_iso": "2020-06-30",
+      "original_doi": null,
+      "original_doi_raw": "unavailable",
+      "retraction_pubmed": null,
+      "original_pubmed": null,
+      "nature": "Retraction",
+      "reasons": [
+        "Legal Reasons and/or Threats"
+      ],
+      "paywalled": "No",
+      "notes_present": true
+    },
+    "short_title": {
+      "query": "Modeling Geometry and Semantics of Physical Damages",
+      "rows": 0
+    },
+    "note": "Turn 1 pastes the shortened title, which is not an exact extract match. The answer may cite the nano row and the AlphaFold zero count. It must not cite record 70548 until the user confirms the exact title on turn 2."
+  },
+  "sample2": {
+    "prompt": "Has 10.1038/s41586-021-03819-2 been retracted or corrected?",
+    "doi": "10.1038/s41586-021-03819-2",
+    "rows": 0,
+    "note": "No record is a data limit. The answer does not say the paper is fine, reliable, or unretracted."
+  },
+  "sample3": {
+    "prompt": "In the shipped extract, which publishers have the most notice rows? For the top publishers, list the notice-row counts, the reason tokens, and the dates that look like batches. Do not compute a rate.",
+    "publishers": [
+      {
+        "publisher": "Hindawi",
+        "notice_rows": 11524,
+        "nature_counts": {
+          "Correction": 16,
+          "Expression of concern": 22,
+          "Retraction": 11486
+        },
+        "reason_tokens": [
+          {
+            "token": "Investigation by Journal/Publisher",
+            "rows": 11115
+          },
+          {
+            "token": "Unreliable Results and/or Conclusions",
+            "rows": 10603
+          },
+          {
+            "token": "Investigation by Third Party",
+            "rows": 10352
+          },
+          {
+            "token": "Concerns/Issues about Peer Review",
+            "rows": 8896
+          },
+          {
+            "token": "Concerns/Issues about Data",
+            "rows": 8468
+          },
+          {
+            "token": "Concerns/Issues about Referencing/Attributions",
+            "rows": 8426
+          },
+          {
+            "token": "Paper Mill",
+            "rows": 7393
+          },
+          {
+            "token": "Concerns/Issues about Results and/or Conclusions",
+            "rows": 6733
+          }
+        ],
+        "batch_dates": [
+          {
+            "date": "1/24/2024 0:00",
+            "iso": "2024-01-24",
+            "notice_rows": 631
+          },
+          {
+            "date": "12/29/2023 0:00",
+            "iso": "2023-12-29",
+            "notice_rows": 566
+          },
+          {
+            "date": "6/21/2023 0:00",
+            "iso": "2023-06-21",
+            "notice_rows": 558
+          },
+          {
+            "date": "7/12/2023 0:00",
+            "iso": "2023-07-12",
+            "notice_rows": 521
+          },
+          {
+            "date": "6/28/2023 0:00",
+            "iso": "2023-06-28",
+            "notice_rows": 514
+          }
+        ]
+      },
+      {
+        "publisher": "IEEE: Institute of Electrical and Electronics Engineers",
+        "notice_rows": 10098,
+        "nature_counts": {
+          "Correction": 1,
+          "Expression of concern": 3,
+          "Reinstatement": 1,
+          "Retraction": 10093
+        },
+        "reason_tokens": [
+          {
+            "token": "Notice - Limited or No Information",
+            "rows": 9526
+          },
+          {
+            "token": "Breach of Policy by Author",
+            "rows": 4381
+          },
+          {
+            "token": "Date of Article and/or Notice Unknown",
+            "rows": 3700
+          },
+          {
+            "token": "Investigation by Journal/Publisher",
+            "rows": 1808
+          },
+          {
+            "token": "Removed",
+            "rows": 1207
+          },
+          {
+            "token": "Euphemisms for Plagiarism",
+            "rows": 228
+          },
+          {
+            "token": "Concerns/Issues about Referencing/Attributions",
+            "rows": 211
+          },
+          {
+            "token": "Plagiarism of Text",
+            "rows": 173
+          }
+        ],
+        "batch_dates": [
+          {
+            "date": "6/16/2011 0:00",
+            "iso": "2011-06-16",
+            "notice_rows": 1271
+          },
+          {
+            "date": "5/31/2011 0:00",
+            "iso": "2011-05-31",
+            "notice_rows": 1084
+          },
+          {
+            "date": "9/7/2010 0:00",
+            "iso": "2010-09-07",
+            "notice_rows": 509
+          },
+          {
+            "date": "9/6/2011 0:00",
+            "iso": "2011-09-06",
+            "notice_rows": 443
+          },
+          {
+            "date": "11/4/2010 0:00",
+            "iso": "2010-11-04",
+            "notice_rows": 441
+          }
+        ]
+      },
+      {
+        "publisher": "Elsevier",
+        "notice_rows": 8113,
+        "nature_counts": {
+          "Correction": 241,
+          "Expression of concern": 707,
+          "Reinstatement": 86,
+          "Retraction": 7079
+        },
+        "reason_tokens": [
+          {
+            "token": "Investigation by Journal/Publisher",
+            "rows": 2595
+          },
+          {
+            "token": "Date of Article and/or Notice Unknown",
+            "rows": 1574
+          },
+          {
+            "token": "Investigation by Third Party",
+            "rows": 1532
+          },
+          {
+            "token": "Unreliable Results and/or Conclusions",
+            "rows": 1188
+          },
+          {
+            "token": "Compromised Peer Review",
+            "rows": 1106
+          },
+          {
+            "token": "Error by Journal/Publisher",
+            "rows": 957
+          },
+          {
+            "token": "Removed",
+            "rows": 917
+          },
+          {
+            "token": "Concerns/Issues about Data",
+            "rows": 855
+          }
+        ],
+        "batch_dates": [
+          {
+            "date": "6/25/2021 0:00",
+            "iso": "2021-06-25",
+            "notice_rows": 129
+          },
+          {
+            "date": "7/1/2023 0:00",
+            "iso": "2023-07-01",
+            "notice_rows": 122
+          },
+          {
+            "date": "2/9/2024 0:00",
+            "iso": "2024-02-09",
+            "notice_rows": 119
+          },
+          {
+            "date": "3/14/2024 0:00",
+            "iso": "2024-03-14",
+            "notice_rows": 117
+          },
+          {
+            "date": "2/9/2022 0:00",
+            "iso": "2022-02-09",
+            "notice_rows": 105
+          }
+        ]
+      },
+      {
+        "publisher": "Springer",
+        "notice_rows": 5210,
+        "nature_counts": {
+          "Correction": 96,
+          "Expression of concern": 618,
+          "Reinstatement": 3,
+          "Retraction": 4493
+        },
+        "reason_tokens": [
+          {
+            "token": "Investigation by Journal/Publisher",
+            "rows": 2455
+          },
+          {
+            "token": "Compromised Peer Review",
+            "rows": 2124
+          },
+          {
+            "token": "Rogue Editor",
+            "rows": 1692
+          },
+          {
+            "token": "Unreliable Results and/or Conclusions",
+            "rows": 1372
+          },
+          {
+            "token": "Concerns/Issues about Referencing/Attributions",
+            "rows": 718
+          },
+          {
+            "token": "Computer-Aided Content or Computer-Generated Content",
+            "rows": 608
+          },
+          {
+            "token": "Duplication of/in Article",
+            "rows": 520
+          },
+          {
+            "token": "Upgrade/Update of Prior Notice(s)",
+            "rows": 512
+          }
+        ],
+        "batch_dates": [
+          {
+            "date": "9/28/2021 0:00",
+            "iso": "2021-09-28",
+            "notice_rows": 435
+          },
+          {
+            "date": "4/20/2017 0:00",
+            "iso": "2017-04-20",
+            "notice_rows": 104
+          },
+          {
+            "date": "12/6/2021 0:00",
+            "iso": "2021-12-06",
+            "notice_rows": 55
+          },
+          {
+            "date": "7/4/2022 0:00",
+            "iso": "2022-07-04",
+            "notice_rows": 51
+          },
+          {
+            "date": "12/5/2022 0:00",
+            "iso": "2022-12-05",
+            "notice_rows": 46
+          }
+        ]
+      },
+      {
+        "publisher": "Wiley",
+        "notice_rows": 4455,
+        "nature_counts": {
+          "Correction": 125,
+          "Expression of concern": 96,
+          "Retraction": 4234
+        },
+        "reason_tokens": [
+          {
+            "token": "Investigation by Journal/Publisher",
+            "rows": 1690
+          },
+          {
+            "token": "Unreliable Results and/or Conclusions",
+            "rows": 1412
+          },
+          {
+            "token": "Investigation by Third Party",
+            "rows": 1089
+          },
+          {
+            "token": "Concerns/Issues about Data",
+            "rows": 894
+          },
+          {
+            "token": "Compromised Peer Review",
+            "rows": 639
+          },
+          {
+            "token": "Duplication of/in Image",
+            "rows": 602
+          },
+          {
+            "token": "Paper Mill",
+            "rows": 582
+          },
+          {
+            "token": "Concerns/Issues about Results and/or Conclusions",
+            "rows": 576
+          }
+        ],
+        "batch_dates": [
+          {
+            "date": "3/20/2024 0:00",
+            "iso": "2024-03-20",
+            "notice_rows": 263
+          },
+          {
+            "date": "6/30/2021 0:00",
+            "iso": "2021-06-30",
+            "notice_rows": 56
+          },
+          {
+            "date": "5/27/2022 0:00",
+            "iso": "2022-05-27",
+            "notice_rows": 42
+          },
+          {
+            "date": "4/2/2025 0:00",
+            "iso": "2025-04-02",
+            "notice_rows": 37
+          },
+          {
+            "date": "3/21/2025 0:00",
+            "iso": "2025-03-21",
+            "notice_rows": 33
+          }
+        ]
+      },
+      {
+        "publisher": "Springer - Nature Publishing Group",
+        "notice_rows": 3736,
+        "nature_counts": {
+          "Correction": 122,
+          "Expression of concern": 81,
+          "Reinstatement": 1,
+          "Retraction": 3532
+        },
+        "reason_tokens": [
+          {
+            "token": "Investigation by Journal/Publisher",
+            "rows": 2318
+          },
+          {
+            "token": "Unreliable Results and/or Conclusions",
+            "rows": 2029
+          },
+          {
+            "token": "Concerns/Issues about Referencing/Attributions",
+            "rows": 1420
+          },
+          {
+            "token": "Compromised Peer Review",
+            "rows": 1255
+          },
+          {
+            "token": "Rogue Editor",
+            "rows": 1207
+          },
+          {
+            "token": "Objections by Author(s)",
+            "rows": 1002
+          },
+          {
+            "token": "Concerns/Issues about Peer Review",
+            "rows": 919
+          },
+          {
+            "token": "Author Unresponsive",
+            "rows": 631
+          }
+        ],
+        "batch_dates": [
+          {
+            "date": "1/1/2014 0:00",
+            "iso": "2014-01-01",
+            "notice_rows": 58
+          },
+          {
+            "date": "9/9/2024 0:00",
+            "iso": "2024-09-09",
+            "notice_rows": 55
+          },
+          {
+            "date": "10/28/2024 0:00",
+            "iso": "2024-10-28",
+            "notice_rows": 51
+          },
+          {
+            "date": "5/30/2022 0:00",
+            "iso": "2022-05-30",
+            "notice_rows": 45
+          },
+          {
+            "date": "10/30/2022 0:00",
+            "iso": "2022-10-30",
+            "notice_rows": 44
+          }
+        ]
+      },
+      {
+        "publisher": "Taylor and Francis",
+        "notice_rows": 2158,
+        "nature_counts": {
+          "Correction": 39,
+          "Expression of concern": 162,
+          "Reinstatement": 12,
+          "Retraction": 1945
+        },
+        "reason_tokens": [
+          {
+            "token": "Concerns/Issues about Data",
+            "rows": 699
+          },
+          {
+            "token": "Investigation by Journal/Publisher",
+            "rows": 650
+          },
+          {
+            "token": "Unreliable Results and/or Conclusions",
+            "rows": 407
+          },
+          {
+            "token": "Concerns/Issues about Results and/or Conclusions",
+            "rows": 366
+          },
+          {
+            "token": "Investigation by Third Party",
+            "rows": 324
+          },
+          {
+            "token": "Original Data and/or Images not Provided and/or not Available",
+            "rows": 302
+          },
+          {
+            "token": "Paper Mill",
+            "rows": 276
+          },
+          {
+            "token": "Duplication of/in Article",
+            "rows": 223
+          }
+        ],
+        "batch_dates": [
+          {
+            "date": "8/23/2023 0:00",
+            "iso": "2023-08-23",
+            "notice_rows": 145
+          },
+          {
+            "date": "10/1/2026 0:00",
+            "iso": "2026-10-01",
+            "notice_rows": 111
+          },
+          {
+            "date": "1/30/2024 0:00",
+            "iso": "2024-01-30",
+            "notice_rows": 80
+          },
+          {
+            "date": "2/20/2024 0:00",
+            "iso": "2024-02-20",
+            "notice_rows": 46
+          },
+          {
+            "date": "2/17/2023 0:00",
+            "iso": "2023-02-17",
+            "notice_rows": 22
+          }
+        ]
+      },
+      {
+        "publisher": "PLoS",
+        "notice_rows": 1805,
+        "nature_counts": {
+          "Correction": 114,
+          "Expression of concern": 218,
+          "Retraction": 1473
+        },
+        "reason_tokens": [
+          {
+            "token": "Investigation by Journal/Publisher",
+            "rows": 615
+          },
+          {
+            "token": "Concerns/Issues about Data",
+            "rows": 556
+          },
+          {
+            "token": "Unreliable Results and/or Conclusions",
+            "rows": 479
+          },
+          {
+            "token": "Duplication of/in Image",
+            "rows": 469
+          },
+          {
+            "token": "Objections by Author(s)",
+            "rows": 461
+          },
+          {
+            "token": "Concerns/Issues about Image",
+            "rows": 407
+          },
+          {
+            "token": "Concerns/Issues about Results and/or Conclusions",
+            "rows": 367
+          },
+          {
+            "token": "Concerns/Issues about Authorship/Affiliation",
+            "rows": 330
+          }
+        ],
+        "batch_dates": [
+          {
+            "date": "1/11/2023 0:00",
+            "iso": "2023-01-11",
+            "notice_rows": 50
+          },
+          {
+            "date": "12/13/2022 0:00",
+            "iso": "2022-12-13",
+            "notice_rows": 49
+          },
+          {
+            "date": "8/31/2022 0:00",
+            "iso": "2022-08-31",
+            "notice_rows": 23
+          },
+          {
+            "date": "8/17/2022 0:00",
+            "iso": "2022-08-17",
+            "notice_rows": 20
+          },
+          {
+            "date": "8/3/2022 0:00",
+            "iso": "2022-08-03",
+            "notice_rows": 20
+          }
+        ]
+      }
+    ],
+    "note": "Notice rows, reason tokens, and batch dates. Not a rate. Token counts are once per row."
+  }
+}
