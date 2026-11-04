@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Before You Cite</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="top">
+    <div>
+      <p class="eyebrow">Retraction audit</p>
+      <h1>Before You Cite</h1>
+    </div>
+    <div class="snapshot" id="snapshot">
+      <span class="label">Extract</span>
+      <strong id="commit">fb5f174f</strong>
+      <span id="when">2026-11-03</span>
+      <span id="rows">73,597 notice rows</span>
+    </div>
+  </header>
+
+  <section class="brief" aria-label="What this is">
+    <article>
+      <h2>What it checks</h2>
+      <p>Notices in one dated Retraction Watch extract, then a live Crossref check when you name a DOI or a title. The extract is loaded when the process starts. A request does not download it.</p>
+    </article>
+    <article>
+      <h2>Who it is for</h2>
+      <p>Someone about to cite a paper, an author, a journal, or a publisher, and the course grader who wants the tool log next to the answer.</p>
+    </article>
+    <article>
+      <h2>How to use it</h2>
+      <p>Paste the full citation as the model wrote it: title, authors, and link, not the link alone. A bibliography can hold up to 25 references. A journal or publisher name has to appear as it does in the extract. A topic alone gets a question back. A title with no DOI is compared with the Crossref hit and confirmed in this chat when it is not an exact match. No record is not a clean bill of health. It is a limit of this file.</p>
+    </article>
+  </section>
+
+  <main>
+    <section class="chat" aria-label="Conversation">
+      <div id="samples" class="samples"></div>
+      <div id="log" class="log" aria-live="polite"></div>
+      <form id="composer">
+        <label for="question" class="sr">Question</label>
+        <textarea id="question" rows="4" placeholder="Paste the full citation: title, authors, and link. Not the link alone."></textarea>
+        <div class="actions">
+          <button type="submit" id="send">Ask</button>
+          <button type="button" id="clear">New session</button>
+        </div>
+      </form>
+    </section>
+    <aside class="tools" aria-label="Tool log">
+      <h2>Tool log</h2>
+      <p class="aside-note">Each call names the agent that ran it. The result is the string the model saw.</p>
+      <div id="tools"></div>
+    </aside>
+  </main>
+  <footer>
+    <p>Retraction Watch database via Crossref, CC0. Crossref REST calls use a polite mailto and do not store abstracts. Publisher strings are quoted as the file and as Crossref wrote them.</p>
+  </footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>

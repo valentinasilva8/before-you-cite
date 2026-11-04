@@ -1,0 +1,30 @@
+{
+  "model": "vertex_ai/gemini-3.5-flash-lite",
+  "vertex_location": "global",
+  "crossref_mailto": "vt2450@columbia.edu",
+  "crossref_user_agent": "before-you-cite/0.1 (mailto:vt2450@columbia.edu)",
+  "urls": {
+    "crossref_works": "https://api.crossref.org/works",
+    "crossref_agency": "https://api.crossref.org/works/{doi}/agency",
+    "doi_registration_agency": "https://doi.org/ra/{doi}",
+    "datacite_doi": "https://api.datacite.org/dois/{doi}"
+  },
+  "snapshot_path": "data/retraction_watch.csv.gz",
+  "manifest_path": "data/manifest.json",
+  "limits": {
+    "max_research_rounds": 2,
+    "max_tool_rounds": 8,
+    "lead_tool_rounds": 4,
+    "audit_chunk_size": 5,
+    "max_references": 25,
+    "max_rows_returned": 25,
+    "crossref_timeout_s": 8,
+    "crossref_list_rps": 3,
+    "crossref_doi_rps": 5,
+    "datacite_rps": 2,
+    "crossref_title_rows": 5,
+    "top_publishers": 8,
+    "top_reason_tokens": 8,
+    "top_batch_dates": 5
+  }
+}
