@@ -14,10 +14,10 @@ let previewRequest = 0;
 let healthMeta = { short: "", rows: null };
 
 const labels = {
-  chatgpt_link: "AI link",
-  chatgpt_citation: "AI citation",
-  chatgpt_nature: "AI Nature link",
-  chatgpt_clean: "AI source that checks out",
+  chatgpt_link: "DOI link",
+  chatgpt_citation: "Full citation",
+  chatgpt_nature: "Article URL",
+  chatgpt_clean: "Reference with DOI",
 };
 
 const SEVERITY = {
