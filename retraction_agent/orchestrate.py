@@ -11,6 +11,7 @@ from retraction_agent.citations import (
 from retraction_agent.config import limits
 from retraction_agent.identity import assign_record_status, compare_identity
 from retraction_agent.extract import apply_llm_fallback, fallback_complete
+from retraction_agent.reading import parsed_references_call
 from retraction_agent.llm import complete as default_complete
 from retraction_agent.llm import run_agent
 from retraction_agent.normalize import normalize_doi, normalize_title
@@ -103,6 +104,9 @@ def handle_turn(session: dict, message: str, *, complete_fn=None, catalog=None, 
             notes = prose_notes(checked, limit=3)
             if notes:
                 response = response + "\n\n" + notes
+            entry = parsed_references_call(message, references, tool_calls)
+            if entry:
+                tool_calls.append(entry)
         else:
             response = prose_notes(checked, limit=None)
             if not response:

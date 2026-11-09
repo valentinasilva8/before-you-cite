@@ -268,7 +268,16 @@ def test_frontend_renders_a_table_and_hides_the_tool_log():
     js = (ROOT / "frontend" / "app.js").read_text()
     css = (ROOT / "frontend" / "styles.css").read_text()
     assert "Show how the agents worked" in html
-    assert "<details" in html
+    assert 'class="work"' in html
+    assert html.count("<details") == 1
+    assert 'class="how"' not in html
+    assert "<summary>How it works</summary>" not in html
+    assert 'class="info-boxes"' in html
+    for title in ("What it checks", "Who it is for", "How to use it"):
+        assert title in html
+    assert "Read as" in js
+    assert "not found in your paste" in js
+    assert "parsed_references" in js
     assert "cdn" not in html.casefold() and "unpkg" not in html.casefold()
     assert "escapeHtml" in js
     assert "textContent" in js
