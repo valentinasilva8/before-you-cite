@@ -226,17 +226,11 @@ def _decide(ref, code, status, rows, work, calls, snapshot_short) -> tuple[str, 
             else "No close match found. Paste the full title, authors, and DOI."
         )
         return ("COULD NOT VERIFY", "The title could not be verified.", action)
-    if code == "exists_no_integrity_source":
+    if code in {"exists_no_integrity_source", "doi_other_agency"}:
         return (
             "FOUND CAN'T CHECK RETRACTIONS",
-            "The citation was found and matches. There is no retraction or correction source for this record, so integrity was not checked.",
-            "The extract has no row for this record.",
-        )
-    if code == "doi_other_agency":
-        return (
-            "FOUND CAN'T CHECK RETRACTIONS",
-            "The DOI is registered with another agency, and Crossref notices are unavailable for it.",
-            "The extract has no row for this record.",
+            _other_registry_found(status),
+            "Look it up on the arXiv or publisher page and check for a withdrawal or retraction notice before citing.",
         )
     if code == "registration_unchecked" or _work_failed(work):
         return (
@@ -246,9 +240,42 @@ def _decide(ref, code, status, rows, work, calls, snapshot_short) -> tuple[str, 
         )
     return (
         "NO NOTICE FOUND",
-        "The DOI is registered and nothing in the pasted citation disagreed. No notice is on record.",
+        _no_notice_found(ref, status),
         "This is not a guarantee of quality.",
     )
+
+
+def _other_registry_found(status: dict) -> str:
+    agency = status.get("agency") or {}
+    name = str(agency.get("agency_label") or agency.get("agency_id") or "").strip()
+    lead = f"{name} has a record for this paper" if name else "A registry has a record for this paper"
+    return f"{lead}, but it is not Crossref, so Crossref has no retraction or correction notice for it."
+
+
+def _no_notice_found(ref, status) -> str:
+    """Say a registry has a record, and mention a match only when every field was compared."""
+    if status.get("status") == "extract_title_match" and not status.get("agency"):
+        base = "We found no retraction, correction or concern in the Retraction Watch data or Crossref."
+    else:
+        base = (
+            "A registry has a record for this paper, and we found no retraction, "
+            "correction or concern in the Retraction Watch data or Crossref."
+        )
+    comparison = status.get("comparison") or {}
+    agreed = {
+        item.get("field")
+        for item in comparison.get("fields") or []
+        if isinstance(item, dict) and item.get("agrees") is True
+    }
+    if comparison.get("verdict") == "match" and {"title", "first_author", "year"} <= agreed:
+        return base + " The title, authors and year you pasted match the record."
+    pasted = status.get("pasted") or {}
+    has_title = bool(pasted.get("title") or ref.get("title"))
+    has_author = bool(pasted.get("author") or ref.get("author"))
+    has_year = bool(pasted.get("year") or ref.get("year"))
+    if ref.get("doi") and not has_title and not has_author and not has_year:
+        return base + " You pasted only the DOI, so we could not compare the title."
+    return base
 
 
 def _retraction_found(rows, retraction, calls, ref, short) -> str:
