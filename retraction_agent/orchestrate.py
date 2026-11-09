@@ -19,9 +19,16 @@ from retraction_agent.planning import (
     DEFAULT_ASK,
     LEAD_PROMPT,
     PATTERN_PROMPT,
+    PATTERN_WRITER_PROMPT,
     WRITER_PROMPT,
     chunk,
     finalize_plan,
+)
+from retraction_agent.verdicts import (
+    build_verdicts,
+    prose_notes,
+    render_verdict_response,
+    select_candidates,
 )
 from retraction_agent.tools import (
     AUDIT_TOOLS,
@@ -72,16 +79,37 @@ def handle_turn(session: dict, message: str, *, complete_fn=None, catalog=None, 
         session["pending_titles"] = pending
         fresh = [call["result"] for call in tool_calls if call["agent"] != "lead"]
         session["corpus"].extend(fresh)
-        draft = _writer(message, tool_calls, pending, catalog, complete_fn)
+        references = plan.get("references") or []
+        notes_only = bool(references)
+        draft = _writer(message, tool_calls, pending, catalog, complete_fn, notes_only=notes_only)
 
         def regenerate(previous: str, problems: list[str]) -> str:
-            return _writer(message, tool_calls, pending, catalog, complete_fn, previous, problems)
+            return _writer(
+                message,
+                tool_calls,
+                pending,
+                catalog,
+                complete_fn,
+                previous,
+                problems,
+                notes_only=notes_only,
+            )
 
-        response = enforce_citations(draft, session["corpus"], catalog.commit, pending, regenerate)
-        if not response:
-            response = grounded_fallback(tool_calls, catalog.commit_short)
-        if pending and "confirm which work" not in response.casefold():
-            response = (response + "\n\n" + confirmation_question(pending)).strip()
+        checked = enforce_citations(draft, session["corpus"], catalog.commit, pending, regenerate)
+        if references:
+            verdicts = build_verdicts(references, tool_calls, catalog.commit_short)
+            response = render_verdict_response(verdicts)
+            notes = prose_notes(checked, limit=3)
+            if notes:
+                response = response + "\n\n" + notes
+        else:
+            response = prose_notes(checked, limit=None)
+            if not response:
+                response = prose_notes(grounded_fallback(tool_calls, catalog.commit_short), limit=None)
+        if pending:
+            question = confirmation_question(pending)
+            if question.casefold() not in response.casefold():
+                response = (response + "\n\n" + question).strip()
         session["messages"].append({"role": "assistant", "content": response})
         session["pack_summary"] = _summary(tool_calls, pending)
         return {"response": response, "tool_calls": tool_calls}
@@ -526,7 +554,9 @@ def _pending(calls: list[dict], catalog) -> list[dict]:
                 candidates = json.loads(other["result"]).get("candidates") or []
             except json.JSONDecodeError:
                 candidates = []
-        pending.append({"query": query, "candidates": candidates})
+        close = select_candidates(query, candidates)
+        if close:
+            pending.append({"query": query, "candidates": close})
     return pending
 
 
@@ -579,7 +609,9 @@ def _registration(calls: list[dict], doi: str) -> str | None:
     return None
 
 
-def _writer(message, tool_calls, pending, catalog, complete_fn, previous=None, problems=None) -> str:
+def _writer(
+    message, tool_calls, pending, catalog, complete_fn, previous=None, problems=None, notes_only=False
+) -> str:
     evidence = [
         {"agent": call["agent"], "name": call["name"], "args": call["args"], "result": call["result"]}
         for call in tool_calls
@@ -598,11 +630,12 @@ def _writer(message, tool_calls, pending, catalog, complete_fn, previous=None, p
         payload["fix"] = (
             "Rewrite. Remove every record id, DOI, and commit that is not in the tool results. "
             "Remove any claim that an unconfirmed title was retracted. "
-            "Do not say a paper with no record is fine, reliable, or unretracted. "
+            "A paper with no record is not fine, reliable, or unretracted. "
             f"Problems: {problems}"
         )
+    prompt = WRITER_PROMPT if notes_only else PATTERN_WRITER_PROMPT
     messages = [
-        {"role": "system", "content": WRITER_PROMPT},
+        {"role": "system", "content": prompt},
         {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
     ]
     text, calls = run_agent(messages, None, lambda name, args: "{}", "writer", 1, complete_fn)

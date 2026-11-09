@@ -2,7 +2,7 @@
 
 Do this in the Cloud Run console. The repo has no Dockerfile and no gcloud script. Buildpacks build the service from `pyproject.toml` and `uv.lock`. The only environment variable is `PORT`, which the entrypoint reads. Do not create an API key. Do not use Secret Manager. The runtime service account calls Vertex as itself. Give that service account the Vertex AI User role.
 
-`deploy_url` in `submission.json` stays `https://REPLACE-AFTER-DEPLOY` until a graded `POST /chat` has been checked on the live URL.
+The service URL is https://before-you-cite-655901547612.europe-west1.run.app. `deploy_url` in `submission.json` is that URL.
 
 ## Console
 

@@ -24,11 +24,94 @@ function escapeHtml(value) {
 }
 
 function addBubble(role, text) {
-  const node = document.createElement("div");
-  node.className = `bubble ${role}`;
-  node.textContent = text;
+  const node = role === "assistant" ? renderAnswer(text) : document.createElement("div");
+  if (role !== "assistant") {
+    node.className = `bubble ${role}`;
+    node.textContent = text;
+  }
   log.appendChild(node);
   log.scrollTop = log.scrollHeight;
+}
+
+function renderAnswer(text) {
+  const node = document.createElement("div");
+  node.className = "bubble assistant";
+  const lines = String(text || "").split("\n");
+  const start = lines.findIndex((line) => line.trim().startsWith("| # | Verdict |"));
+  if (start < 0) {
+    node.textContent = text;
+    return node;
+  }
+  let end = start;
+  while (end < lines.length && lines[end].trim().startsWith("|")) {
+    end += 1;
+  }
+  const before = lines.slice(0, start).join("\n").trim();
+  const table = lines.slice(start, end).join("\n");
+  const after = lines.slice(end).join("\n").trim();
+  if (before) {
+    const summary = document.createElement("p");
+    summary.className = "summary";
+    summary.textContent = before;
+    node.appendChild(summary);
+  }
+  node.appendChild(renderTable(table));
+  if (after) {
+    const rest = document.createElement("div");
+    rest.className = "after-table";
+    rest.textContent = after;
+    node.appendChild(rest);
+  }
+  return node;
+}
+
+function renderTable(markdown) {
+  const table = document.createElement("table");
+  table.className = "verdicts";
+  for (const line of markdown.split("\n")) {
+    if (!line.trim().startsWith("|")) {
+      continue;
+    }
+    const cells = line.split("|").slice(1, -1).map((cell) => cell.trim());
+    if (!cells.length || cells.every((cell) => /^:?-+:?$/.test(cell))) {
+      continue;
+    }
+    const header = cells[1] === "Verdict";
+    const row = document.createElement("tr");
+    cells.forEach((value, index) => {
+      const el = document.createElement(header ? "th" : "td");
+      if (!header && index === 1) {
+        const chip = document.createElement("span");
+        chip.className = `chip ${chipClass(value)}`;
+        chip.textContent = value;
+        el.appendChild(chip);
+      } else {
+        el.textContent = value;
+      }
+      row.appendChild(el);
+    });
+    table.appendChild(row);
+  }
+  return table;
+}
+
+function chipClass(label) {
+  if (label === "DO NOT CITE") {
+    return "chip-red";
+  }
+  if (
+    label === "CHECK FIRST" ||
+    label === "WRONG LINK" ||
+    label === "WRONG KIND OF LINK" ||
+    label === "NOT FOUND" ||
+    label === "COULD NOT VERIFY"
+  ) {
+    return "chip-amber";
+  }
+  if (label === "NO NOTICE FOUND") {
+    return "chip-blue";
+  }
+  return "chip-grey";
 }
 
 function showTools(calls) {
