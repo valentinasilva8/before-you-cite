@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Before You Cite</title>
-  <link rel="stylesheet" href="/static/styles.css?v=6">
+  <link rel="stylesheet" href="/static/styles.css?v=7">
 </head>
 <body>
   <header class="top">
@@ -24,9 +24,9 @@
     <article class="info-box">
       <h2>What it checks</h2>
       <div class="checks">
-        <p><strong>Does it exist?</strong> Crossref, then doi.org. Record: Crossref or DataCite. Differing title, first author, or year is WRONG LINK. No DOI: exact title match; first author and year must agree. Else COULD NOT VERIFY, not proof it is fake.</p>
-        <p><strong>Was it retracted or corrected?</strong> The dated Retraction Watch file (top right) and Crossref's live updated-by and update-to notices.</p>
-        <p><strong>How we read your paste.</strong> Edit title, authors, year, and DOI before Run check. AI can only copy your paste, and only when the rules cannot read a line. Unreadable is COULD NOT VERIFY, not skipped.</p>
+        <p><strong>Does it exist?</strong> A DOI is checked at Crossref, then doi.org, and the record is read from Crossref or DataCite. With no DOI, Crossref accepts only an exact title match, and a pasted first author and year must agree. If they agree, it counts as found. A difference means the link does not check out.</p>
+        <p><strong>Was it retracted or corrected?</strong> The dated Retraction Watch file (top right) and Crossref's live updated-by and update-to notices, covering retractions, corrections, and expressions of concern.</p>
+        <p><strong>How we read your paste.</strong> Fixed rules show the title, authors, year, and DOI so you can correct them before Run check. An AI model runs only when the rules cannot read a line, and it can only copy text you pasted. A line nobody can read is marked UNCONFIRMED, not skipped.</p>
       </div>
     </article>
     <article class="info-box">
@@ -35,19 +35,15 @@
     </article>
     <article class="info-box how-to">
       <h2>How to use it</h2>
-      <p>Paste what the chatbot wrote, including the link. Up to 25. A DOI is the paper's permanent ID. It looks like 10.1038/nature14539. A normal link works too. "No notice found" means we found no retraction. That is not proof the paper is sound.</p>
+      <p>Paste what the chatbot wrote, including the link. Up to 25. A DOI is the paper's permanent ID. It looks like 10.1038/nature14539. A normal link works too.</p>
       <ul class="legend">
-        <li><span class="chip chip-red">DO NOT CITE</span><span>A retraction is on record for this citation.</span></li>
-        <li><span class="chip chip-amber">CHECK FIRST</span><span>A notice other than a retraction is on record.</span></li>
-        <li><span class="chip chip-amber">WRONG LINK</span><span>This link is a different paper from the pasted citation.</span></li>
-        <li><span class="chip chip-amber">WRONG KIND OF LINK</span><span>This DOI is the retraction notice, not the original paper.</span></li>
-        <li><span class="chip chip-amber">NOT FOUND</span><span>No registration agency has this DOI.</span></li>
-        <li><span class="chip chip-amber">COULD NOT VERIFY</span><span>The citation could not be read, or the live check did not return.</span></li>
-        <li><span class="chip chip-blue">NO NOTICE FOUND</span><span>A registry has a record for the paper and we found no retraction or correction. That is not proof the paper is sound.</span></li>
-        <li><span class="chip chip-grey">FOUND CAN'T CHECK RETRACTIONS</span><span>A registry has a record for the paper, but that registry gives us no retraction data, so we could not check it there. Look it up on the publisher's page yourself.</span></li>
-        <li><span class="chip chip-grey">NOT A PAPER</span><span>This item is not a paper citation.</span></li>
+        <li><span class="chip chip-red">DO NOT CITE</span><span>A retraction is on record, or the link you pasted is the retraction notice.</span></li>
+        <li><span class="chip chip-amber">DOESN'T CHECK OUT</span><span>The link goes to a different paper, or no registry has this DOI. It cannot be cited as written.</span></li>
+        <li><span class="chip chip-amber">CHECK FIRST</span><span>A correction, expression of concern or other notice is on record. Read it before citing.</span></li>
+        <li><span class="chip chip-grey">UNCONFIRMED</span><span>We could not complete the check. Either we could not match it to a registry record (we search Crossref by title and accept only an exact match, so a slightly different title fails), or the live lookup did not return, or the paper exists in a registry that has no retraction data (such as arXiv), or it is not a paper. Check it yourself.</span></li>
+        <li><span class="chip chip-blue">NO ISSUES FOUND</span><span>A registry has a record for the paper and we found no retraction or correction. We did not check whether the paper's content is relevant to your case, and this is not proof the paper is sound.</span></li>
       </ul>
-      <p class="legend-try">Try the last example to see a source that comes back clean.</p>
+      <p class="legend-try">Try the last example to see a source with no issues found.</p>
     </article>
   </section>
 
@@ -82,6 +78,6 @@
   <footer>
     <p>Retraction Watch database via Crossref, CC0. Crossref REST calls use a polite mailto and do not store abstracts. Publisher strings are quoted as the file and as Crossref wrote them.</p>
   </footer>
-  <script src="/static/app.js?v=6"></script>
+  <script src="/static/app.js?v=7"></script>
 </body>
 </html>
