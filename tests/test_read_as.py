@@ -17,6 +17,7 @@ PAGE = """<!DOCTYPE html>
   </form>
   <button id="edit" type="button">Edit</button>
   <button id="clear" type="button">Clear</button>
+  <div id="preview" hidden><div id="preview-list"></div><p id="preview-truncated" hidden></p><button id="run" type="button"></button></div>
   <div id="log"></div>
   <div id="tools"></div>
   <script src="app.js"></script>

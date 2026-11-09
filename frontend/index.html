@@ -48,6 +48,12 @@
           <button type="button" id="clear">New session</button>
         </div>
       </form>
+      <div id="preview" class="preview" hidden>
+        <p class="preview-note">Check this reading, then run the check. A field must be empty, the reading shown, or text from that line.</p>
+        <div id="preview-list"></div>
+        <p id="preview-truncated" class="preview-note" hidden>Only the first 25 references are included.</p>
+        <button type="button" id="run" disabled>Run check</button>
+      </div>
       <div id="log" class="log" aria-live="polite"></div>
     </section>
     <aside class="tools" aria-label="How the agents worked">
