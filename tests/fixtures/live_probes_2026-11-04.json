@@ -1,0 +1,54 @@
+{
+  "measured": "2026-11-04",
+  "crossref_agency_fake": {
+    "url": "https://api.crossref.org/works/10.9999/not-a-real-work-before-you-cite/agency?mailto=vt2450@columbia.edu",
+    "status": 404,
+    "content_type": "application/json;charset=utf-8",
+    "body": "Resource not found.",
+    "note": "Content-Type says JSON. The body is plain text, 19 bytes, not an object."
+  },
+  "doi_org_fake": {
+    "url": "https://doi.org/ra/10.9999/not-a-real-work-before-you-cite",
+    "status": 200,
+    "body": [
+      {
+        "DOI": "10.9999/not-a-real-work-before-you-cite",
+        "status": "DOI does not exist"
+      }
+    ]
+  },
+  "crossref_agency_nano": {
+    "status": 200,
+    "agency_id": "crossref",
+    "agency_label": "Crossref"
+  },
+  "crossref_agency_arxiv": {
+    "doi": "10.48550/arXiv.1706.03762",
+    "status": 200,
+    "agency_id": "datacite",
+    "agency_label": "DataCite",
+    "body_doi": "10.48550/arxiv.1706.03762"
+  },
+  "datacite_arxiv": {
+    "url": "https://api.datacite.org/dois/10.48550/arxiv.1706.03762",
+    "status": 200,
+    "rate_limit_headers": {},
+    "title": "Attention Is All You Need",
+    "first_author_family": "Vaswani",
+    "publication_year": 2017,
+    "shape": "data.attributes with titles, creators, publicationYear"
+  },
+  "datacite_fake": {
+    "url": "https://api.datacite.org/dois/10.48550/arXiv.9999.99999",
+    "status": 404,
+    "rate_limit_headers": {},
+    "body": {
+      "errors": [
+        {
+          "status": "404",
+          "title": "The resource you are looking for doesn't exist."
+        }
+      ]
+    }
+  }
+}
