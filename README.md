@@ -76,7 +76,7 @@ Yes, use this exact title:
 Modeling Geometry and Semantics of Physical Damages using IFC
 ```
 
-Turn 1 is the same table format as sample 4, with three rows: DO NOT CITE for `10.3390/nano10122325` (Retraction Watch #70104, notice date 2026-02-25), NO NOTICE FOUND for `10.1038/s41586-021-03819-2` when Crossref returns no update, and COULD NOT VERIFY for the shortened title. The shortened title has 0 exact extract rows, so turn 1 does not cite record 70548. A Crossref candidate is listed only when at least half of its words are in the pasted title, and at most three are shown. If none qualify, the row says: No close match found. Paste the full title, authors, and DOI.
+Turn 1 is the same table format as sample 4, with three rows: DO NOT CITE for `10.3390/nano10122325` (Retraction Watch #70104, notice date 2026-02-25), NO ISSUES FOUND for `10.1038/s41586-021-03819-2` when Crossref returns no update, and UNCONFIRMED for the shortened title. The shortened title has 0 exact extract rows, so turn 1 does not cite record 70548. A Crossref candidate is listed only when at least half of its words are in the pasted title, and at most three are shown. If none qualify, the row says: Paste the full title, authors and DOI.
 
 Turn 2 is one row, DO NOT CITE, for the exact title. Retraction Watch #70548, notice date 2023-10-18. Journal `EG-ICE 2020 Workshop on Intelligent Computing in Engineering`. Publisher `Technische Universitat Berlin`. Both DOI fields in the extract are `unavailable`. Reason: legal reasons or threats.
 
@@ -88,16 +88,16 @@ The nano record is journal `Nanomaterials`, publisher `MDPI`, original date `202
 Has 10.1038/s41586-021-03819-2 been retracted or corrected?
 ```
 
-The answer uses the same table as a bibliography, with one row. With no extract row and no Crossref update, the row is NO NOTICE FOUND. A `has-review` relation is a review, not a notice.
+The answer uses the same table as a bibliography, with one row. With no extract row and no Crossref update, the row is NO ISSUES FOUND. A `has-review` relation is a review, not a notice.
 
 ```
-0 do not cite, 0 need fixing or verifying, 1 no notice found or can't check, 0 not a paper.
+1 no issues found.
 
 | # | Verdict | What we found | What to do |
 | --- | --- | --- | --- |
-| 1 | NO NOTICE FOUND | The DOI is registered and nothing in the pasted citation disagreed. No notice is on record, snapshot fb5f174f. | This is not a guarantee of quality. |
+| 1 | NO ISSUES FOUND — Record found, no notice | We found no retraction or correction, and Crossref has a record for this DOI. You pasted only the DOI, so we could not compare the title. We did not check whether the paper's content is relevant to your case. | This does not mean the paper is sound. Read it before relying on it. |
 
-No notice found never means a paper is reliable. This tool checks that a citation exists and matches, and whether a retraction or correction is on record. It does not check whether the paper supports your claim.
+No issues found never means a paper is reliable. This tool checks that a registry has a record for a citation, and whether a retraction or correction is on record. It does not check whether the paper supports your claim.
 ```
 
 The writer may add at most three sentences under that footer. This file does not invent those sentences.
@@ -138,26 +138,26 @@ Audit these citations. Use the full citation: title, authors, and link.
 8. https://doi.org/10.1039/D1RA07974C
 ```
 
-The verdicts, in order, are DO NOT CITE, WRONG LINK, FOUND CAN'T CHECK RETRACTIONS, NOT FOUND, COULD NOT VERIFY, NOT A PAPER, WRONG KIND OF LINK, DO NOT CITE. The table below is the code-built response for those citations. Row 5 asks which work when a title candidate shares at least half its words with the paste. The writer may add at most three sentences under the footer. This file does not invent those sentences.
+The verdicts, in order, are DO NOT CITE, DOESN'T CHECK OUT, UNCONFIRMED, DOESN'T CHECK OUT, UNCONFIRMED, UNCONFIRMED, DO NOT CITE, DO NOT CITE. The table below is the code-built response for those citations. Row 5 names a close work only when a title candidate shares at least half its words with the paste. The writer may add at most three sentences under the footer. This file does not invent those sentences.
 
 ```
-2 do not cite, 4 need fixing or verifying, 1 no notice found or can't check, 1 not a paper.
+3 do not cite, 2 doesn't check out, 3 unconfirmed.
 
 | # | Verdict | What we found | What to do |
 | --- | --- | --- | --- |
-| 1 | DO NOT CITE | Retraction dated 2026-02-25. Reasons: concerns about data, concerns about image, and investigation by the journal or publisher. Retraction Watch #70104, snapshot fb5f174f. | Leave this paper out of the bibliography. |
-| 2 | WRONG LINK | The pasted title is Magnetic Ionic Liquid Nanocatalyst to Improve Mechanical and Thermal Properties of Epoxy Nanocomposites. The DOI resolves to Highly accurate protein structure prediction with AlphaFold, Jumper, 2021, snapshot fb5f174f. | Use the paper you meant. This link is a different paper. |
-| 3 | FOUND CAN'T CHECK RETRACTIONS | found and matches the citation; we have no retraction or correction source for arXiv, so integrity was not checked, snapshot fb5f174f. | An empty extract row is not a clean result. |
-| 4 | NOT FOUND | No registration agency has this DOI, snapshot fb5f174f. | This DOI may be mistyped or invented. Check it by hand. It is not proof. |
-| 5 | COULD NOT VERIFY | The title could not be verified, snapshot fb5f174f. | Confirm which work you mean, or paste the full title, authors, and DOI. |
-| 6 | NOT A PAPER | This item is not a paper citation, snapshot fb5f174f. | It was not checked. |
-| 7 | WRONG KIND OF LINK | This DOI is the retraction notice. Retraction Watch #70104, snapshot fb5f174f. | The link is the retraction notice. The original paper is 10.3390/nano10122325, Magnetic Ionic Liquid Nanocatalyst to Improve Mechanical and Thermal Properties of Epoxy Nanocomposites. |
-| 8 | DO NOT CITE | An expression of concern was recorded earlier, on 2024-09-27. Retraction dated 2026-07-24. Reasons: duplication of data, duplication of an image, and original data or images not provided. Retraction Watch #73988, snapshot fb5f174f. | Leave this paper out of the bibliography. |
+| 1 | DO NOT CITE — Retraction on record | The retraction is dated 2026-02-25. The recorded reasons are concerns about data, concerns about image, and investigation by the journal or publisher. Retraction Watch #70104. | Leave it out of your bibliography. |
+| 2 | DOESN'T CHECK OUT — Link is a different paper | This link goes to a different paper than the one you pasted. The pasted title is Magnetic Ionic Liquid Nanocatalyst to Improve Mechanical and Thermal Properties of Epoxy Nanocomposites. The DOI resolves to Highly accurate protein structure prediction with AlphaFold, Jumper, 2021. | Find the paper you meant and use its link. |
+| 3 | UNCONFIRMED — Exists, no retraction data | DataCite has a record for this paper, so it exists. That registry gives us no retraction or correction data, so we could not check for either. | Look it up on the arXiv or publisher page and check for a withdrawal or retraction notice before citing. |
+| 4 | DOESN'T CHECK OUT — DOI not found in any registry | No registry (Crossref or DataCite) has a record for this DOI. It may be mistyped or invented, but this alone is not proof. | Check the DOI by hand, or find the real source. |
+| 5 | UNCONFIRMED — No matching record found | We could not find a registry record that matches this citation. We search Crossref by title and accept only an exact title match, and anything else you pasted must agree. | The pasted title is not an exact match for one work. |
+| 6 | UNCONFIRMED — Not a paper | This is not a paper citation, for example a news article, so it was not checked. | It was not checked. |
+| 7 | DO NOT CITE — Link is the retraction notice | This DOI is the retraction notice, so the paper was retracted. Retraction Watch #70104. | Leave it out. The original paper is 10.3390/nano10122325, Magnetic Ionic Liquid Nanocatalyst to Improve Mechanical and Thermal Properties of Epoxy Nanocomposites. |
+| 8 | DO NOT CITE — Retraction on record | An expression of concern was recorded earlier, on 2024-09-27. The retraction is dated 2026-07-24. The recorded reasons are duplication of data, duplication of an image, and original data or images not provided. Retraction Watch #73988. | Leave it out of your bibliography. |
 
-No notice found never means a paper is reliable. This tool checks that a citation exists and matches, and whether a retraction or correction is on record. It does not check whether the paper supports your claim.
+No issues found never means a paper is reliable. This tool checks that a registry has a record for a citation, and whether a retraction or correction is on record. It does not check whether the paper supports your claim.
 ```
 
-Measured on 2026-11-04, and still what the table uses: the nano DOI is Crossref and record 70104 is a retraction; the AlphaFold link resolves to Jumper, 2021; the arXiv DOI is DataCite and matches Vaswani, 2017, with 0 extract rows; the fake DOI is not registered (Crossref agency HTTP 404 body `Resource not found.`, and `doi.org/ra` status `DOI does not exist`); the short title has 0 exact rows and record 70548 is not cited; the news URL is not a paper; `10.3390/nano16050293` is the notice DOI of record 70104; `10.1039/D1RA07974C` has an expression of concern on 2024-09-27 (record 73993) and a retraction on 2026-07-24 (record 73988). `https://arxiv.org/abs/1706.03762v2` normalizes to the same DOI, with the version suffix removed. A DataCite body whose title, first author, or year differs from the paste is a wrong link. Neither DataCite response had a rate-limit header, so the client waits at `datacite_rps` 2.
+Measured on 2026-11-04, and still what the table uses: the nano DOI is Crossref and record 70104 is a retraction; the AlphaFold link resolves to Jumper, 2021; the arXiv DOI is DataCite and matches Vaswani, 2017, with 0 extract rows; the fake DOI is not registered (Crossref agency HTTP 404 body `Resource not found.`, and `doi.org/ra` status `DOI does not exist`); the short title has 0 exact rows and record 70548 is not cited; the news URL is not a paper; `10.3390/nano16050293` is the notice DOI of record 70104; `10.1039/D1RA07974C` has an expression of concern on 2024-09-27 (record 73993) and a retraction on 2026-07-24 (record 73988). `https://arxiv.org/abs/1706.03762v2` normalizes to the same DOI, with the version suffix removed. A DataCite body whose title, first author, or year differs from the paste is DOESN'T CHECK OUT. Neither DataCite response had a rate-limit header, so the client waits at `datacite_rps` 2.
 
 ## No-tools output from vertex_ai/gemini-3.5-flash-lite
 

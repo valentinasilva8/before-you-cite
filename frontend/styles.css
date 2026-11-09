@@ -240,6 +240,15 @@ table.verdicts td.citation {
   white-space: normal;
 }
 
+.read-field { margin-left: 8px; }
+
+.chip-reason {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
 .read-key { font-weight: 600; }
 
 .read-missing { color: #b3ab9f; }

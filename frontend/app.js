@@ -22,9 +22,10 @@ const labels = {
 
 const SEVERITY = {
   "DO NOT CITE": 0,
-  "WRONG LINK": 1,
-  "WRONG KIND OF LINK": 2,
-  "NOT FOUND": 3,
+  "DOESN'T CHECK OUT": 1,
+  "CHECK FIRST": 2,
+  "UNCONFIRMED": 3,
+  "NO ISSUES FOUND": 4,
 };
 
 function escapeHtml(value) {
@@ -63,7 +64,8 @@ function renderAnswer(text, calls) {
   const records = parsed.rows.map((row, index) => ({
     n: row[0],
     citation: cites[index] || "",
-    verdict: row[1],
+    verdict: splitVerdict(row[1]).label,
+    reason: splitVerdict(row[1]).reason,
     found: cleanCell(row[2]),
     action: cleanCell(row[3]),
     order: index,
@@ -90,10 +92,11 @@ function renderAnswer(text, calls) {
   snapshot.className = "snapshot-foot";
   snapshot.textContent = snapshotLine();
   node.append(banner, actions, tableHost, snapshot);
-  if (parsed.after) {
+  const after = notesAfterTable(parsed.after);
+  if (after) {
     const rest = document.createElement("div");
     rest.className = "after-table";
-    rest.textContent = parsed.after;
+    rest.textContent = after;
     node.appendChild(rest);
   }
 
@@ -168,26 +171,35 @@ function cleanCell(value) {
     .trim();
 }
 
-function summaryBanner(records) {
-  let doNot = 0;
-  let wrong = 0;
-  let missing = 0;
-  let unchecked = 0;
-  let other = 0;
-  for (const record of records) {
-    if (record.verdict === "DO NOT CITE") {
-      doNot += 1;
-    } else if (record.verdict === "WRONG LINK" || record.verdict === "WRONG KIND OF LINK") {
-      wrong += 1;
-    } else if (record.verdict === "NOT FOUND") {
-      missing += 1;
-    } else if (record.verdict === "COULD NOT VERIFY" || record.verdict === "FOUND CAN'T CHECK RETRACTIONS") {
-      unchecked += 1;
-    } else {
-      other += 1;
+function splitVerdict(cell) {
+  const parts = String(cell || "").split("—");
+  return { label: parts[0].trim(), reason: parts.slice(1).join("—").trim() };
+}
+
+function notesAfterTable(text) {
+  const kept = [];
+  for (const line of String(text || "").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.includes("```") || trimmed.split("|").length > 2) {
+      continue;
     }
+    kept.push(trimmed);
   }
-  return `${records.length} checked: ${doNot} do not cite, ${wrong} wrong link, ${missing} not found, ${unchecked} could not be checked, ${other} other.`;
+  return kept.join("\n").trim();
+}
+
+function summaryBanner(records) {
+  const counts = {};
+  for (const label of Object.keys(SEVERITY)) {
+    counts[label] = 0;
+  }
+  for (const record of records) {
+    counts[record.verdict] = (counts[record.verdict] || 0) + 1;
+  }
+  const parts = Object.keys(SEVERITY)
+    .filter((label) => counts[label])
+    .map((label) => `${counts[label]} ${label.toLowerCase()}`);
+  return `${records.length} checked: ${parts.length ? parts.join(", ") : "none"}.`;
 }
 
 function sortBySeverity(records) {
@@ -218,7 +230,17 @@ function renderRecords(records) {
     const chip = document.createElement("span");
     chip.className = `chip ${chipClass(record.verdict)}`;
     chip.textContent = record.verdict;
+    const tip = legendSentence(record.verdict);
+    if (tip) {
+      chip.title = tip;
+    }
     verdict.appendChild(chip);
+    if (record.reason) {
+      const reason = document.createElement("div");
+      reason.className = "chip-reason";
+      reason.textContent = record.reason;
+      verdict.appendChild(reason);
+    }
     row.appendChild(verdict);
     row.appendChild(textCell(record.found));
     row.appendChild(textCell(record.action));
@@ -368,19 +390,24 @@ function chipClass(label) {
   if (label === "DO NOT CITE") {
     return "chip-red";
   }
-  if (
-    label === "CHECK FIRST" ||
-    label === "WRONG LINK" ||
-    label === "WRONG KIND OF LINK" ||
-    label === "NOT FOUND" ||
-    label === "COULD NOT VERIFY"
-  ) {
+  if (label === "DOESN'T CHECK OUT" || label === "CHECK FIRST") {
     return "chip-amber";
   }
-  if (label === "NO NOTICE FOUND") {
+  if (label === "NO ISSUES FOUND") {
     return "chip-blue";
   }
   return "chip-grey";
+}
+
+function legendSentence(label) {
+  for (const item of document.querySelectorAll(".legend li")) {
+    const chip = item.querySelector(".chip");
+    if (chip && chip.textContent.trim() === label) {
+      const sentence = item.querySelector("span:last-child");
+      return sentence ? sentence.textContent.trim() : "";
+    }
+  }
+  return "";
 }
 
 function showTools(calls) {

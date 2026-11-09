@@ -77,7 +77,8 @@ def test_parsed_references_match_verdict_rows_in_order():
     assert items[1]["parsed_by"] == "rules"
     assert items[2]["parsed_by"] == "unreadable"
     assert items[2]["raw"].endswith("Smith (2012).")
-    assert rows[2][1] == "COULD NOT VERIFY"
+    assert rows[2][1].startswith("UNCONFIRMED")
+    assert "Could not read this citation" in rows[2][1]
     assert "parsed_references" not in result["response"]
 
 

@@ -102,6 +102,7 @@ WRITER_PROMPT = """You are the writer. You have no tools. A verdict table is alr
 
 Use only facts that appear in the tool results. Name a record as Retraction Watch and its number, and name the snapshot by the short hash in the tool results.
 Leave out status codes, tool names, and instructions. Leave out any claim that a paper is reliable, fine, or safe.
+Do not write a markdown table, a code fence, or a step list.
 If you have nothing to add, reply with an empty string.
 """
 

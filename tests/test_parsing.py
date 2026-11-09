@@ -81,7 +81,8 @@ def test_unparsed_reference_is_kept_and_shown_as_could_not_verify():
     plan = finalize_plan(line, {"action": "dispatch", "references": []}, [])
     assert plan["references"] == refs
     verdicts = build_verdicts(plan["references"], [], "fb5f174f")
-    assert verdicts[0]["label"] == "COULD NOT VERIFY"
+    assert verdicts[0]["label"] == "UNCONFIRMED"
+    assert verdicts[0]["reason"] == "Could not read this citation"
     rendered = render_verdict_response(verdicts)
     assert "we could not read this citation" in rendered.casefold()
     result = handle_turn(
@@ -90,7 +91,7 @@ def test_unparsed_reference_is_kept_and_shown_as_could_not_verify():
         complete_fn=scripted_complete("Snapshot fb5f174f."),
         crossref=FakeCrossref(),
     )
-    assert "COULD NOT VERIFY" in result["response"]
+    assert "UNCONFIRMED" in result["response"]
     assert "we could not read this citation" in result["response"].casefold()
 
 

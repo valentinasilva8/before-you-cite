@@ -7,19 +7,30 @@ from retraction_agent.citations import units
 from retraction_agent.normalize import normalize_doi, normalize_title
 
 FOOTER = (
-    "No notice found never means a paper is reliable. This tool checks that a citation exists "
-    "and matches, and whether a retraction or correction is on record. It does not check "
+    "No issues found never means a paper is reliable. This tool checks that a registry has a "
+    "record for a citation, and whether a retraction or correction is on record. It does not check "
     "whether the paper supports your claim."
 )
 
-_FIX = {
-    "CHECK FIRST",
-    "WRONG LINK",
-    "WRONG KIND OF LINK",
-    "NOT FOUND",
-    "COULD NOT VERIFY",
+# Display labels. The keys are the internal outcomes. identity.py statuses do not change.
+HEADLINES = {
+    "DO NOT CITE": "DO NOT CITE",
+    "WRONG KIND OF LINK": "DO NOT CITE",
+    "WRONG LINK": "DOESN'T CHECK OUT",
+    "NOT FOUND": "DOESN'T CHECK OUT",
+    "CHECK FIRST": "CHECK FIRST",
+    "COULD NOT VERIFY": "UNCONFIRMED",
+    "FOUND CAN'T CHECK RETRACTIONS": "UNCONFIRMED",
+    "NOT A PAPER": "UNCONFIRMED",
+    "NO NOTICE FOUND": "NO ISSUES FOUND",
 }
-_CLEAR = {"NO NOTICE FOUND", "FOUND CAN'T CHECK RETRACTIONS"}
+ORDER = (
+    "DO NOT CITE",
+    "DOESN'T CHECK OUT",
+    "CHECK FIRST",
+    "UNCONFIRMED",
+    "NO ISSUES FOUND",
+)
 _WORD = re.compile(r"[a-z0-9]+")
 _INSTRUCTION = (
     "Do not ",
@@ -69,14 +80,14 @@ _REASON = {
 
 
 def summary_line(verdicts: list[dict]) -> str:
-    do_not = sum(item["label"] == "DO NOT CITE" for item in verdicts)
-    fix = sum(item["label"] in _FIX for item in verdicts)
-    clear = sum(item["label"] in _CLEAR for item in verdicts)
-    paper = sum(item["label"] == "NOT A PAPER" for item in verdicts)
-    return (
-        f"{do_not} do not cite, {fix} need fixing or verifying, "
-        f"{clear} no notice found or can't check, {paper} not a paper."
-    )
+    """Count the five headline labels. Zero counts are left out."""
+    counts = {label: 0 for label in ORDER}
+    for item in verdicts:
+        label = item.get("label")
+        if label in counts:
+            counts[label] += 1
+    parts = [f"{counts[label]} {label.lower()}" for label in ORDER if counts[label]]
+    return ", ".join(parts) + "." if parts else "0 checked."
 
 
 def render_verdict_response(verdicts: list[dict]) -> str:
@@ -88,7 +99,7 @@ def render_verdict_response(verdicts: list[dict]) -> str:
     ]
     for item in verdicts:
         lines.append(
-            f"| {item['n']} | {_cell(item['label'])} | {_cell(item['found'])} | {_cell(item['action'])} |"
+            f"| {item['n']} | {_cell(_verdict_cell(item))} | {_cell(item['found'])} | {_cell(item['action'])} |"
         )
     lines.extend(["", FOOTER])
     return "\n".join(lines)
@@ -102,7 +113,7 @@ def labels_in(response: str) -> list[str]:
         cells = [part.strip() for part in line.strip().strip("|").split("|")]
         if len(cells) < 2 or cells[0] == "#" or set(cells[0]) <= {"-", ":"}:
             continue
-        labels.append(cells[1])
+        labels.append(cells[1].split("—", 1)[0].strip())
     return labels
 
 
@@ -129,10 +140,10 @@ def select_candidates(query: str, candidates: list[dict], limit: int = 3) -> lis
 
 
 def prose_notes(text: str, limit: int | None = 3) -> str:
-    """Keep plain sentences. Drop instructions, status codes, and tool names."""
+    """Keep plain sentences. Drop instructions, status codes, tool names, and markdown tables."""
     kept = []
     for unit in units(text or ""):
-        if _instruction(unit):
+        if _instruction(unit) or _scaffold(unit):
             continue
         kept.append(unit.strip())
         if limit is not None and len(kept) >= limit:
@@ -152,70 +163,94 @@ def _one(index: int, ref: dict, calls: list[dict], snapshot_short: str) -> dict:
     code = status.get("status") or ""
     rows = _rows_for(ref, calls)
     work = _work_for(ref, calls)
-    label, found, action = _decide(ref, code, status, rows, work, calls, snapshot_short)
-    return {"n": index, "label": label, "found": found, "action": action}
+    internal, reason, found, action = _decide(ref, code, status, rows, work, calls, snapshot_short)
+    return {
+        "n": index,
+        "label": HEADLINES[internal],
+        "reason": reason,
+        "found": found,
+        "action": action,
+    }
 
 
-def _decide(ref, code, status, rows, work, calls, snapshot_short) -> tuple[str, str, str]:
+def _decide(ref, code, status, rows, work, calls, snapshot_short) -> tuple[str, str, str, str]:
+    """Return the internal label, the short reason, what we found, and what to do."""
     short = snapshot_short
     if ref.get("unparsed") and not ref.get("doi") and not ref.get("title"):
         return (
             "COULD NOT VERIFY",
+            "Could not read this citation",
             "We could not read this citation.",
-            "Paste the citation again with the authors, year, title, and link.",
+            "Paste the title, authors and DOI.",
         )
     if code == "not_checkable" or ref.get("not_checkable"):
         return (
             "NOT A PAPER",
-            "This item is not a paper citation.",
-            "This item was not checked as a paper.",
+            "Not a paper",
+            "This is not a paper citation, for example a news article, so it was not checked.",
+            "It was not checked.",
         )
     if code == "doi_not_registered":
         return (
             "NOT FOUND",
-            "No registration agency has this DOI.",
-            "This DOI may be mistyped or invented. It is not proof.",
+            "DOI not found in any registry",
+            "No registry (Crossref or DataCite) has a record for this DOI. It may be mistyped or invented, but this alone is not proof.",
+            "Check the DOI by hand, or find the real source.",
         )
     if code == "identity_mismatch":
         return (
             "WRONG LINK",
-            _mismatch_found(ref, status, short),
-            "This link is a different paper from the pasted citation.",
+            "Link is a different paper",
+            "This link goes to a different paper than the one you pasted. " + _mismatch_found(ref, status, short),
+            "Find the paper you meant and use its link.",
         )
     notice = _notice_only(ref.get("doi"), rows)
     if notice:
         original = notice.get("original_doi") or "unavailable"
         title = notice.get("title") or "the original paper"
+        watched = _watch(notice.get("record_id"), short)
+        found = "This DOI is the retraction notice, so the paper was retracted."
+        if watched:
+            found = f"{found} {watched}"
         return (
             "WRONG KIND OF LINK",
-            f"This DOI is the retraction notice. {_watch(notice.get('record_id'), short)}".strip(),
-            f"The link is the retraction notice. The original paper is {original}, {title}.",
+            "Link is the retraction notice",
+            found,
+            f"Leave it out. The original paper is {original}, {title}.",
         )
     retraction = _latest(rows, "retraction")
     if retraction or _nature_count(ref, calls, "Retraction"):
         return (
             "DO NOT CITE",
+            "Retraction on record",
             _retraction_found(rows, retraction, calls, ref, short),
-            "A retraction is on record for this citation.",
+            "Leave it out of your bibliography.",
         )
     update = _retraction_update(work)
     if update and not retraction:
-        return ("DO NOT CITE", _update_found(update, short, retraction=True), "A retraction is on record for this citation.")
+        return (
+            "DO NOT CITE",
+            "Retraction on record",
+            _update_found(update, short, retraction=True),
+            "Leave it out of your bibliography.",
+        )
     concern = _latest(rows, "expression of concern")
     correction = _latest(rows, "correction")
     reinstatement = _latest(rows, "reinstatement")
     if concern or correction or reinstatement:
         return (
             "CHECK FIRST",
+            _notice_reason(concern, correction),
             _check_found(concern, correction, reinstatement, short),
-            "A notice other than a retraction is on record.",
+            "Read the notice before citing.",
         )
     other = _other_update(work)
     if other:
         return (
             "CHECK FIRST",
+            _update_reason(other),
             _update_found(other, short, retraction=False),
-            "A notice other than a retraction is on record.",
+            "Read the notice before citing.",
         )
     if code == "title_unverified":
         query = status.get("query") or ref.get("title") or ""
@@ -223,59 +258,90 @@ def _decide(ref, code, status, rows, work, calls, snapshot_short) -> tuple[str, 
         action = (
             "The pasted title is not an exact match for one work."
             if close
-            else "No close match found. Paste the full title, authors, and DOI."
+            else "Paste the full title, authors and DOI."
         )
-        return ("COULD NOT VERIFY", "The title could not be verified.", action)
+        return (
+            "COULD NOT VERIFY",
+            "No matching record found",
+            "We could not find a registry record that matches this citation. We search Crossref by title and accept only an exact title match, and anything else you pasted must agree.",
+            action,
+        )
     if code in {"exists_no_integrity_source", "doi_other_agency"}:
         return (
             "FOUND CAN'T CHECK RETRACTIONS",
+            "Exists, no retraction data",
             _other_registry_found(status),
             "Look it up on the arXiv or publisher page and check for a withdrawal or retraction notice before citing.",
         )
     if code == "registration_unchecked" or _work_failed(work):
         return (
             "COULD NOT VERIFY",
-            "The live registration or update check did not return.",
-            "The missing live check is not proof that the paper is absent.",
+            "Live check did not return",
+            "The live lookup did not return, so we could not confirm the record.",
+            "Run it again in a minute, or check it by hand.",
         )
     return (
         "NO NOTICE FOUND",
+        "Record found, no notice",
         _no_notice_found(ref, status),
-        "This is not a guarantee of quality.",
+        "This does not mean the paper is sound. Read it before relying on it.",
     )
 
 
-def _other_registry_found(status: dict) -> str:
+def _update_reason(item: dict) -> str:
+    blob = _blob(item)
+    if "concern" in blob:
+        return "Expression of concern on record"
+    if "correct" in blob:
+        return "Correction on record"
+    return "Other notice on record"
+
+
+def _notice_reason(concern, correction) -> str:
+    if concern:
+        return "Expression of concern on record"
+    if correction:
+        return "Correction on record"
+    return "Other notice on record"
+
+
+def _registry_has(status: dict) -> str:
     agency = status.get("agency") or {}
     name = str(agency.get("agency_label") or agency.get("agency_id") or "").strip()
-    lead = f"{name} has a record for this paper" if name else "A registry has a record for this paper"
-    return f"{lead}, but it is not Crossref, so Crossref has no retraction or correction notice for it."
+    if name:
+        return f"{name} has"
+    return "a registry has"
+
+
+def _other_registry_found(status: dict) -> str:
+    named = _registry_has(status)
+    lead = named[:1].upper() + named[1:]
+    return (
+        f"{lead} a record for this paper, so it exists. "
+        "That registry gives us no retraction or correction data, so we could not check for either."
+    )
 
 
 def _no_notice_found(ref, status) -> str:
-    """Say a registry has a record, and mention a match only when every field was compared."""
+    """Name a match only when the identity comparison ran and agreed."""
+    tail = " We did not check whether the paper's content is relevant to your case."
     if status.get("status") == "extract_title_match" and not status.get("agency"):
-        base = "We found no retraction, correction or concern in the Retraction Watch data or Crossref."
-    else:
-        base = (
-            "A registry has a record for this paper, and we found no retraction, "
-            "correction or concern in the Retraction Watch data or Crossref."
-        )
+        return "We found no retraction or correction." + tail
+    named = _registry_has(status)
     comparison = status.get("comparison") or {}
-    agreed = {
-        item.get("field")
-        for item in comparison.get("fields") or []
-        if isinstance(item, dict) and item.get("agrees") is True
-    }
-    if comparison.get("verdict") == "match" and {"title", "first_author", "year"} <= agreed:
-        return base + " The title, authors and year you pasted match the record."
+    if comparison.get("verdict") == "match":
+        return f"We found no retraction or correction, and {named} a record that matches your citation.{tail}"
     pasted = status.get("pasted") or {}
     has_title = bool(pasted.get("title") or ref.get("title"))
     has_author = bool(pasted.get("author") or ref.get("author"))
     has_year = bool(pasted.get("year") or ref.get("year"))
     if ref.get("doi") and not has_title and not has_author and not has_year:
-        return base + " You pasted only the DOI, so we could not compare the title."
-    return base
+        return (
+            f"We found no retraction or correction, and {named} a record for this DOI. "
+            "You pasted only the DOI, so we could not compare the title."
+            + tail
+        )
+    return f"We found no retraction or correction, and {named} a record.{tail}"
 
 
 def _retraction_found(rows, retraction, calls, ref, short) -> str:
@@ -538,3 +604,21 @@ def _instruction(unit: str) -> bool:
 
 def _cell(value) -> str:
     return " ".join(str(value).replace("|", "/").split())
+
+
+def _verdict_cell(item: dict) -> str:
+    label = item.get("label") or ""
+    reason = item.get("reason") or ""
+    if reason:
+        return f"{label} — {reason}"
+    return label
+
+
+def _scaffold(unit: str) -> bool:
+    """A markdown table or code fence is not a note."""
+    text = unit.strip()
+    if "```" in text:
+        return True
+    if text.count("|") >= 2:
+        return True
+    return bool(re.search(r"\|\s*:?-{2,}", text))
