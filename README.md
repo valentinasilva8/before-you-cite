@@ -27,6 +27,36 @@ The lead plans the turn. It does not answer from memory. Plan merging is partly 
 
 These fields were filled by `uv run python scripts/fill_expected.py` from the frozen file. The same numbers are in `data/expected_samples.json`.
 
+The four chips on the page use the prompts below. Samples 1 to 4 are separate, and their prompt text is unchanged.
+
+### AI link
+
+```
+An AI assistant gave me this reference. Can you check that it exists?
+https://doi.org/10.3390/nano10122325
+```
+
+### AI citation
+
+```
+Gemini suggested this citation for my paper. Is it real, and has it been retracted?
+Shu et al. (2012). Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end. https://www.pnas.org/doi/10.1073/pnas.1209746109
+```
+
+### AI Nature link
+
+```
+Copilot gave me this link. Is it a real paper?
+https://www.nature.com/articles/s41586-021-03819-2
+```
+
+### AI source that checks out
+
+```
+ChatGPT gave me this source for my essay. Is it real, and has it been retracted?
+LeCun, Y., Bengio, Y., & Hinton, G. (2015). Deep learning. Nature, 521, 436-444. https://doi.org/10.1038/nature14539
+```
+
 ### Sample 1. Bibliography, two turns
 
 Turn 1:

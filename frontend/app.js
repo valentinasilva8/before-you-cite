@@ -2,7 +2,6 @@ const log = document.querySelector("#log");
 const tools = document.querySelector("#tools");
 const form = document.querySelector("#composer");
 const question = document.querySelector("#question");
-const send = document.querySelector("#send");
 const samples = document.querySelector("#samples");
 const preview = document.querySelector("#preview");
 const previewList = document.querySelector("#preview-list");
@@ -10,12 +9,15 @@ const previewTruncated = document.querySelector("#preview-truncated");
 const run = document.querySelector("#run");
 let sessionId = null;
 let previewState = [];
+let previewTimer = null;
+let previewRequest = 0;
 let healthMeta = { short: "", rows: null };
 
 const labels = {
-  chatgpt_link: "ChatGPT link",
-  chatgpt_citation: "ChatGPT citation",
-  chatgpt_nature: "ChatGPT nature link",
+  chatgpt_link: "AI link",
+  chatgpt_citation: "AI citation",
+  chatgpt_nature: "AI Nature link",
+  chatgpt_clean: "AI source that checks out",
 };
 
 const SEVERITY = {
@@ -35,14 +37,17 @@ function escapeHtml(value) {
   }[ch]));
 }
 
-function addBubble(role, text, calls) {
-  const node = role === "assistant" ? renderAnswer(text, calls) : document.createElement("div");
-  if (role !== "assistant") {
-    node.className = `bubble ${role}`;
-    node.textContent = text;
-  }
-  log.appendChild(node);
-  log.scrollTop = log.scrollHeight;
+function addResult(checked, node) {
+  const card = document.createElement("article");
+  card.className = "result-card";
+  const header = document.createElement("p");
+  header.className = "result-head";
+  const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const snippet = String(checked || "").replace(/\s+/g, " ").trim().slice(0, 80);
+  header.textContent = `${time} · ${snippet}`;
+  card.append(header, node);
+  log.prepend(card);
+  card.scrollIntoView({ block: "nearest" });
 }
 
 function renderAnswer(text, calls) {
@@ -420,7 +425,7 @@ async function loadMeta() {
       button.textContent = labels[key] || key;
       button.addEventListener("click", () => {
         question.value = prompt;
-        form.requestSubmit();
+        refreshPreview();
       });
       samples.appendChild(button);
     }
@@ -437,8 +442,9 @@ function startPending() {
   const tick = () => {
     const seconds = Math.floor((Date.now() - started) / 1000);
     pending.hidden = false;
-    pending.textContent = `Audits can take a few minutes (${seconds}s)`;
+    pending.textContent = `Checking, this can take a few minutes (${seconds}s)`;
   };
+  log.prepend(pending);
   tick();
   pendingTimer = setInterval(tick, 1000);
 }
@@ -452,46 +458,31 @@ function clearPending() {
   pending.textContent = "";
 }
 
-form.addEventListener("submit", async (event) => {
+form.addEventListener("submit", (event) => {
   event.preventDefault();
-  const message = question.value.trim();
-  if (!message) return;
-  send.disabled = true;
-  if (run) run.disabled = true;
-  startPending();
-  try {
-    const parsed = await requestParse(message);
-    if (!parsed) return;
-    const items = parsed.items;
-    if (!items.length) {
-      clearPreview();
-      clearPending();
-      send.disabled = false;
-      await sendChat(message);
-      return;
-    }
-    renderPreview(items, Boolean(parsed.truncated));
-  } catch (error) {
-    addBubble("assistant", "The audit request did not reach the server. Check the connection and try again.");
-  } finally {
-    clearPending();
-    send.disabled = false;
-    if (run && previewState.length) run.disabled = false;
+  runCheck();
+});
+
+question.addEventListener("input", () => {
+  syncRun();
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(refreshPreview, 600);
+});
+
+question.addEventListener("paste", () => {
+  clearTimeout(previewTimer);
+  setTimeout(refreshPreview, 0);
+});
+
+question.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+    event.preventDefault();
+    runCheck();
   }
 });
 
 if (run) {
-  run.addEventListener("click", () => {
-    const built = messageForPreview(previewEntries());
-    if (!built.ok) {
-      previewEntries().forEach((entry, index) => {
-        showProblems(index, previewProblems(entry.item, entry.fields));
-      });
-      return;
-    }
-    if (!built.message) return;
-    sendChat(built.message);
-  });
+  run.addEventListener("click", runCheck);
 }
 
 document.querySelector("#clear").addEventListener("click", async () => {
@@ -499,9 +490,12 @@ document.querySelector("#clear").addEventListener("click", async () => {
     await fetch(`/clear?session_id=${encodeURIComponent(sessionId)}`, { method: "POST" });
   }
   sessionId = null;
-  log.innerHTML = "";
+  log.replaceChildren(pending);
+  pending.hidden = true;
+  pending.textContent = "";
   tools.innerHTML = "";
   clearPreview();
+  syncRun();
 });
 
 const PREVIEW_FIELDS = [
@@ -600,7 +594,7 @@ function clearPreview() {
   if (previewList) previewList.replaceChildren();
   if (preview) preview.hidden = true;
   if (previewTruncated) previewTruncated.hidden = true;
-  if (run) run.disabled = true;
+  syncRun();
 }
 
 function renderPreview(items, truncated) {
@@ -653,36 +647,79 @@ function renderPreview(items, truncated) {
   });
   previewTruncated.hidden = !truncated;
   preview.hidden = false;
-  run.disabled = false;
-  preview.scrollIntoView({ block: "nearest" });
+  syncRun();
+}
+
+async function refreshPreview() {
+  const message = question.value.trim();
+  const token = ++previewRequest;
+  syncRun();
+  if (!message) {
+    clearPreview();
+    return;
+  }
+  try {
+    const parsed = await requestParse(message);
+    if (token !== previewRequest) return;
+    if (!parsed || !parsed.items.length) {
+      clearPreview();
+      return;
+    }
+    renderPreview(parsed.items, Boolean(parsed.truncated));
+  } catch (error) {
+    if (token !== previewRequest) return;
+  }
+}
+
+function syncRun() {
+  if (run) run.disabled = !question.value.trim();
+}
+
+function runCheck() {
+  const raw = question.value.trim();
+  if (!raw) return;
+  if (!previewState.length) {
+    sendChat(raw);
+    return;
+  }
+  const built = messageForPreview(previewEntries());
+  if (!built.ok) {
+    previewEntries().forEach((entry, index) => {
+      showProblems(index, previewProblems(entry.item, entry.fields));
+    });
+    return;
+  }
+  if (!built.message) {
+    sendChat(raw);
+    return;
+  }
+  sendChat(built.message);
 }
 
 async function requestParse(message) {
   const response = await fetch("/parse", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, fallback: false }),
   });
-  if (!response.ok) {
-    addBubble("assistant", `The audit request failed (HTTP ${response.status}). Nothing was checked. Try again.`);
-    return null;
-  }
+  if (!response.ok) return null;
   try {
     const body = await response.json();
-    if (!body || !Array.isArray(body.items)) {
-      addBubble("assistant", "The audit request returned a response that was not JSON. Nothing was checked. Try again.");
-      return null;
-    }
+    if (!body || !Array.isArray(body.items)) return null;
     return body;
   } catch (error) {
-    addBubble("assistant", "The audit request returned a response that was not JSON. Nothing was checked. Try again.");
     return null;
   }
 }
 
+function failureCard(checked, text) {
+  const node = document.createElement("div");
+  node.className = "bubble assistant";
+  node.textContent = text;
+  addResult(checked, node);
+}
+
 async function sendChat(message) {
-  addBubble("user", message);
-  send.disabled = true;
   if (run) run.disabled = true;
   startPending();
   try {
@@ -692,25 +729,27 @@ async function sendChat(message) {
       body: JSON.stringify({ message, session_id: sessionId }),
     });
     if (!response.ok) {
-      addBubble("assistant", `The audit request failed (HTTP ${response.status}). Nothing was checked. Try again.`);
+      clearPending();
+      failureCard(message, `The audit request failed (HTTP ${response.status}). Nothing was checked. Try again.`);
       return;
     }
     let body;
     try {
       body = await response.json();
     } catch (error) {
-      addBubble("assistant", "The audit request returned a response that was not JSON. Nothing was checked. Try again.");
+      clearPending();
+      failureCard(message, "The audit request returned a response that was not JSON. Nothing was checked. Try again.");
       return;
     }
     sessionId = body.session_id || sessionId;
-    addBubble("assistant", body.response || "No response.", body.tool_calls || []);
+    clearPending();
+    addResult(message, renderAnswer(body.response || "No response.", body.tool_calls || []));
     showTools(body.tool_calls || []);
   } catch (error) {
-    addBubble("assistant", "The audit request did not reach the server. Check the connection and try again.");
-  } finally {
     clearPending();
-    send.disabled = false;
-    if (run && previewState.length) run.disabled = false;
+    failureCard(message, "The audit request did not reach the server. Check the connection and try again.");
+  } finally {
+    syncRun();
   }
 }
 

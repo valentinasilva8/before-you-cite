@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 from retraction_agent.catalog import get_catalog
@@ -287,3 +288,22 @@ def test_frontend_renders_a_table_and_hides_the_tool_log():
         assert name in css
     assert "green" not in css.casefold()
     assert "not proof the paper is sound" in html
+    assert 'id="send"' not in html
+    assert ">Ask<" not in html
+    assert "setTimeout(refreshPreview, 600)" in js
+    assert 'addEventListener("paste"' in js
+    assert "metaKey" in js
+    assert "fallback: false" in js
+    assert ".prepend(" in js
+    for label in ("AI link", "AI citation", "AI Nature link", "AI source that checks out"):
+        assert label in js
+
+
+def test_legend_covers_every_verdict_label():
+    source = (ROOT / "retraction_agent" / "verdicts.py").read_text()
+    html = (ROOT / "frontend" / "index.html").read_text()
+    labels = set(re.findall(r'return \(\s*"([^"]+)"', source))
+    assert labels
+    for label in sorted(labels):
+        assert label in html
+    assert "not proof the paper is sound" in html.casefold()
