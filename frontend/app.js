@@ -4,15 +4,18 @@ const form = document.querySelector("#composer");
 const question = document.querySelector("#question");
 const send = document.querySelector("#send");
 const samples = document.querySelector("#samples");
+const preview = document.querySelector("#preview");
+const previewList = document.querySelector("#preview-list");
+const previewTruncated = document.querySelector("#preview-truncated");
+const run = document.querySelector("#run");
 let sessionId = null;
+let previewState = [];
 let healthMeta = { short: "", rows: null };
 
 const labels = {
-  sample1_turn1: "Sample 1, turn 1",
-  sample1_turn2: "Sample 1, turn 2",
-  sample2: "Sample 2",
-  sample3: "Sample 3",
-  sample4: "Sample 4",
+  chatgpt_link: "ChatGPT link",
+  chatgpt_citation: "ChatGPT citation",
+  chatgpt_nature: "ChatGPT nature link",
 };
 
 const SEVERITY = {
@@ -417,7 +420,7 @@ async function loadMeta() {
       button.textContent = labels[key] || key;
       button.addEventListener("click", () => {
         question.value = prompt;
-        question.focus();
+        form.requestSubmit();
       });
       samples.appendChild(button);
     }
@@ -453,8 +456,234 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const message = question.value.trim();
   if (!message) return;
+  send.disabled = true;
+  if (run) run.disabled = true;
+  startPending();
+  try {
+    const parsed = await requestParse(message);
+    if (!parsed) return;
+    const items = parsed.items;
+    if (!items.length) {
+      clearPreview();
+      clearPending();
+      send.disabled = false;
+      await sendChat(message);
+      return;
+    }
+    renderPreview(items, Boolean(parsed.truncated));
+  } catch (error) {
+    addBubble("assistant", "The audit request did not reach the server. Check the connection and try again.");
+  } finally {
+    clearPending();
+    send.disabled = false;
+    if (run && previewState.length) run.disabled = false;
+  }
+});
+
+if (run) {
+  run.addEventListener("click", () => {
+    const built = messageForPreview(previewEntries());
+    if (!built.ok) {
+      previewEntries().forEach((entry, index) => {
+        showProblems(index, previewProblems(entry.item, entry.fields));
+      });
+      return;
+    }
+    if (!built.message) return;
+    sendChat(built.message);
+  });
+}
+
+document.querySelector("#clear").addEventListener("click", async () => {
+  if (sessionId) {
+    await fetch(`/clear?session_id=${encodeURIComponent(sessionId)}`, { method: "POST" });
+  }
+  sessionId = null;
+  log.innerHTML = "";
+  tools.innerHTML = "";
+  clearPreview();
+});
+
+const PREVIEW_FIELDS = [
+  ["title", "Title"],
+  ["authors", "Authors"],
+  ["year", "Year"],
+  ["doi", "DOI"],
+];
+
+function foldText(value) {
+  return String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function fieldAllowed(value, parsedValue, raw) {
+  const text = String(value || "").trim();
+  if (!text) return true;
+  if (foldText(text) === foldText(parsedValue)) return true;
+  const folded = foldText(text);
+  return Boolean(folded) && foldText(raw).includes(folded);
+}
+
+function previewProblems(item, fields) {
+  if (!item || item.parsed_by === "unreadable") return [];
+  const problems = [];
+  for (const [key] of PREVIEW_FIELDS) {
+    if (!fieldAllowed(fields[key], item[key], item.raw)) problems.push(key);
+  }
+  return problems;
+}
+
+function rowUnchanged(item, fields) {
+  return PREVIEW_FIELDS.every(([key]) => foldText(fields[key]) === foldText(item[key]));
+}
+
+function sentence(text) {
+  const value = String(text || "").trim();
+  if (!value) return "";
+  return /[.!?]$/.test(value) ? value : `${value}.`;
+}
+
+function lineForRow(item, fields) {
+  if (!item || item.parsed_by === "unreadable" || rowUnchanged(item, fields)) {
+    return String((item && item.raw) || "");
+  }
+  const authors = String(fields.authors || "").trim();
+  const year = String(fields.year || "").trim();
+  const title = String(fields.title || "").trim();
+  const doi = String(fields.doi || "").trim();
+  const parts = [];
+  if (authors && year) parts.push(`${authors} (${year}).`);
+  else if (authors) parts.push(sentence(authors));
+  else if (year) parts.push(`(${year}).`);
+  if (title) {
+    const bare = title.replace(/^"|"$/g, "");
+    parts.push(year ? sentence(bare) : sentence(`"${bare}"`));
+  }
+  if (doi) parts.push(doi);
+  return parts.join(" ").trim();
+}
+
+function messageForPreview(entries) {
+  const lines = [];
+  for (const entry of entries || []) {
+    if (previewProblems(entry.item, entry.fields).length) {
+      return { ok: false, message: "" };
+    }
+    const line = lineForRow(entry.item, entry.fields);
+    if (line) lines.push(line);
+  }
+  return { ok: true, message: lines.join("\n") };
+}
+
+function previewEntries() {
+  return previewState.map((item, index) => {
+    const fields = {};
+    const row = previewList.children[index];
+    for (const input of row.querySelectorAll("input")) {
+      fields[input.dataset.field] = input.value;
+    }
+    return { item, fields };
+  });
+}
+
+function showProblems(index, problems) {
+  const row = previewList.children[index];
+  for (const input of row.querySelectorAll("input")) {
+    const problem = input.parentElement.querySelector(".preview-problem");
+    const bad = problems.includes(input.dataset.field);
+    problem.hidden = !bad;
+    problem.textContent = bad ? "Use text from this line, or clear the field." : "";
+  }
+}
+
+function clearPreview() {
+  previewState = [];
+  if (previewList) previewList.replaceChildren();
+  if (preview) preview.hidden = true;
+  if (previewTruncated) previewTruncated.hidden = true;
+  if (run) run.disabled = true;
+}
+
+function renderPreview(items, truncated) {
+  previewState = Array.isArray(items) ? items : [];
+  previewList.replaceChildren();
+  previewState.forEach((item, index) => {
+    const row = document.createElement("article");
+    row.className = "preview-row";
+    const raw = document.createElement("p");
+    raw.className = "preview-raw";
+    raw.textContent = item.raw || "";
+    row.appendChild(raw);
+    if (item.parsed_by) {
+      const badge = document.createElement("span");
+      badge.className = "read-badge";
+      badge.textContent = String(item.parsed_by);
+      row.appendChild(badge);
+    }
+    for (const note of item.notes || []) {
+      if (!note) continue;
+      const span = document.createElement("span");
+      span.className = "read-note";
+      span.textContent = String(note);
+      row.appendChild(span);
+    }
+    const fields = document.createElement("div");
+    fields.className = "preview-fields";
+    const locked = item.parsed_by === "unreadable";
+    for (const [key, label] of PREVIEW_FIELDS) {
+      const labelEl = document.createElement("label");
+      labelEl.textContent = `${label} `;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.dataset.field = key;
+      input.value = item[key] || "";
+      input.disabled = locked;
+      const problem = document.createElement("p");
+      problem.className = "preview-problem";
+      problem.hidden = true;
+      input.addEventListener("input", () => {
+        const allowed = locked || fieldAllowed(input.value, item[key], item.raw);
+        problem.hidden = allowed;
+        problem.textContent = allowed ? "" : "Use text from this line, or clear the field.";
+      });
+      labelEl.append(input, problem);
+      fields.appendChild(labelEl);
+    }
+    row.appendChild(fields);
+    previewList.appendChild(row);
+  });
+  previewTruncated.hidden = !truncated;
+  preview.hidden = false;
+  run.disabled = false;
+  preview.scrollIntoView({ block: "nearest" });
+}
+
+async function requestParse(message) {
+  const response = await fetch("/parse", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+  });
+  if (!response.ok) {
+    addBubble("assistant", `The audit request failed (HTTP ${response.status}). Nothing was checked. Try again.`);
+    return null;
+  }
+  try {
+    const body = await response.json();
+    if (!body || !Array.isArray(body.items)) {
+      addBubble("assistant", "The audit request returned a response that was not JSON. Nothing was checked. Try again.");
+      return null;
+    }
+    return body;
+  } catch (error) {
+    addBubble("assistant", "The audit request returned a response that was not JSON. Nothing was checked. Try again.");
+    return null;
+  }
+}
+
+async function sendChat(message) {
   addBubble("user", message);
   send.disabled = true;
+  if (run) run.disabled = true;
   startPending();
   try {
     const response = await fetch("/chat", {
@@ -481,21 +710,8 @@ form.addEventListener("submit", async (event) => {
   } finally {
     clearPending();
     send.disabled = false;
+    if (run && previewState.length) run.disabled = false;
   }
-});
-
-document.querySelector("#edit").addEventListener("click", () => {
-  question.focus();
-  question.scrollIntoView({ block: "center" });
-});
-
-document.querySelector("#clear").addEventListener("click", async () => {
-  if (sessionId) {
-    await fetch(`/clear?session_id=${encodeURIComponent(sessionId)}`, { method: "POST" });
-  }
-  sessionId = null;
-  log.innerHTML = "";
-  tools.innerHTML = "";
-});
+}
 
 loadMeta();

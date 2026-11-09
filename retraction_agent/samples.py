@@ -35,12 +35,25 @@ INTEGRITY_SAMPLE = """Audit these citations. Use the full citation: title, autho
 8. https://doi.org/10.1039/D1RA07974C
 """
 
+CHATGPT_LINK = (
+    "Can you check if this reference ChatGPT gave me exists?\n"
+    "https://doi.org/10.3390/nano10122325"
+)
+CHATGPT_CITATION = (
+    "Can you check if this reference ChatGPT gave me is real?\n"
+    "Shu et al. (2012). Signing at the beginning makes ethics salient and decreases "
+    "dishonest self-reports in comparison to signing at the end. "
+    "https://www.pnas.org/doi/10.1073/pnas.1209746109"
+)
+CHATGPT_NATURE = (
+    "ChatGPT told me to cite this. Does it exist, and was it retracted?\n"
+    "https://www.nature.com/articles/s41586-021-03819-2"
+)
+
 PROMPTS = {
-    "sample1_turn1": SAMPLE_1_TURN_1,
-    "sample1_turn2": SAMPLE_1_TURN_2,
-    "sample2": SAMPLE_2,
-    "sample3": SAMPLE_3,
-    "sample4": INTEGRITY_SAMPLE,
+    "chatgpt_link": CHATGPT_LINK,
+    "chatgpt_citation": CHATGPT_CITATION,
+    "chatgpt_nature": CHATGPT_NATURE,
 }
 
 

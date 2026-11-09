@@ -27,7 +27,13 @@ def test_static_files_send_no_cache():
     for path in ("/static/app.js", "/static/styles.css"):
         response = client.get(path)
         assert response.status_code == 200
-        assert response.headers["cache-control"] == "no-cache"
+        assert response.headers["cache-control"] == "no-store"
+    page = client.get("/")
+    assert page.headers["cache-control"] == "no-store"
+    assert "Edit and recheck" not in page.text
+    assert 'class="info-boxes"' in page.text
+    assert "styles.css?v=4" in page.text
+    assert "app.js?v=4" in page.text
 
 
 def test_chat_shape_and_session(monkeypatch):

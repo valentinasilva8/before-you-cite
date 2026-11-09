@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from retraction_agent.catalog import get_catalog
 from retraction_agent.orchestrate import handle_turn
+from retraction_agent.reading import parse_message
 from retraction_agent.samples import PROMPTS
 
 logging.basicConfig(level=logging.INFO)
@@ -45,9 +46,29 @@ class ChatResponse(BaseModel):
     tool_calls: list[ToolCallOut] = Field(default_factory=list)
 
 
+class ParsedItem(BaseModel):
+    raw: str = ""
+    title: str = ""
+    authors: str = ""
+    year: str = ""
+    doi: str = ""
+    url: str = ""
+    parsed_by: str
+    notes: list[str] = Field(default_factory=list)
+
+
+class ParseRequest(BaseModel):
+    message: str
+
+
+class ParseResponse(BaseModel):
+    items: list[ParsedItem] = Field(default_factory=list)
+    truncated: bool = False
+
+
 @app.get("/")
 def index():
-    return FileResponse(FRONTEND / "index.html", headers={"Cache-Control": "no-cache"})
+    return FileResponse(FRONTEND / "index.html", headers={"Cache-Control": "no-store"})
 
 
 @app.get("/health")
@@ -72,6 +93,11 @@ def samples():
     }
 
 
+@app.post("/parse", response_model=ParseResponse)
+def parse(request: ParseRequest):
+    return parse_message(request.message)
+
+
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     session_id = request.session_id or str(uuid.uuid4())
@@ -90,7 +116,7 @@ def clear(session_id: str | None = None):
 class NoCacheStaticFiles(StaticFiles):
     async def get_response(self, path: str, scope):
         response = await super().get_response(path, scope)
-        response.headers["Cache-Control"] = "no-cache"
+        response.headers["Cache-Control"] = "no-store"
         return response
 
 

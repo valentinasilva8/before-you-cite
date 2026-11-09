@@ -95,6 +95,9 @@ def _line_score(ref: dict, line: str) -> int:
     doi = normalize_doi(ref.get("doi"))
     if doi and doi.casefold() in line.casefold():
         return 4
+    suffix = doi.split("/", 1)[-1].casefold() if doi and "/" in doi else ""
+    if suffix and suffix in line.casefold():
+        return 4
     title = normalize_title(ref.get("title"))
     if title and title in normalize_title(line):
         return 3
@@ -174,3 +177,19 @@ def _json(result) -> dict:
     except (TypeError, json.JSONDecodeError):
         return {}
     return data if isinstance(data, dict) else {}
+
+
+def parse_message(message: str, complete_fn=None) -> dict:
+    """Read the paste only. No Crossref and no retraction check."""
+    from retraction_agent.extract import apply_llm_fallback, fallback_complete
+    from retraction_agent.llm import complete as default_complete
+    from retraction_agent.planning import finalize_plan
+
+    message = (message or "").strip()
+    plan = finalize_plan(message, None, [])
+    extractor = fallback_complete if complete_fn is None or complete_fn is default_complete else complete_fn
+    apply_llm_fallback(message, plan, extractor)
+    return {
+        "items": parsed_reference_items(message, plan.get("references") or [], []),
+        "truncated": bool(plan.get("references_truncated")),
+    }
