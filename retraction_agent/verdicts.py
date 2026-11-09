@@ -158,6 +158,12 @@ def _one(index: int, ref: dict, calls: list[dict], snapshot_short: str) -> dict:
 
 def _decide(ref, code, status, rows, work, calls, snapshot_short) -> tuple[str, str, str]:
     short = snapshot_short
+    if ref.get("unparsed") and not ref.get("doi") and not ref.get("title"):
+        return (
+            "COULD NOT VERIFY",
+            "We could not read this citation.",
+            "Paste the citation again with the authors, year, title, and link.",
+        )
     if code == "not_checkable" or ref.get("not_checkable"):
         return (
             "NOT A PAPER",
