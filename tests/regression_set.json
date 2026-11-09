@@ -37,7 +37,7 @@
       "id": "arxiv-no-retraction-source",
       "input": "Vaswani, Ashish, et al. Attention Is All You Need. 2017. https://doi.org/10.48550/arXiv.1706.03762",
       "expected_label": "UNCONFIRMED",
-      "row_contains": ["DataCite has a record for this paper, so it exists", "no retraction or correction data"]
+      "row_contains": ["DataCite has this paper", "Retraction Watch file does not cover this publisher"]
     },
     {
       "id": "apa-shu-32321",

@@ -65,7 +65,8 @@ def _sample_four():
 def test_sample_four_verdicts_follow_the_readme_order():
     response = _sample_four()["response"]
     assert labels_in(response) == EXPECTED
-    assert response.startswith("3 do not cite, 2 doesn't check out, 3 unconfirmed.")
+    assert response.startswith("Confirm which title you meant. The choices are listed under the table.")
+    assert "3 do not cite, 2 doesn't check out, 3 unconfirmed." in response
     assert "| # | Verdict | What we found | What to do |" in response
     assert FOOTER in response
     assert "Retraction Watch #70104." in response
@@ -76,7 +77,7 @@ def test_sample_four_verdicts_follow_the_readme_order():
     assert "2026-02-25" in response
     assert "Highly accurate protein structure prediction with AlphaFold" in response
     assert "Jumper" in response and "2021" in response
-    assert "so it exists" in response
+    assert "DataCite has this paper. The Retraction Watch file does not cover this publisher" in response
     assert "withdrawal or retraction notice" in response
     assert "This paper exists" not in response
     assert "mistyped or invented" in response
@@ -86,7 +87,7 @@ def test_sample_four_verdicts_follow_the_readme_order():
     assert "An expression of concern was recorded earlier, on 2024-09-27." in response
     assert "2026-07-24" in response
     assert "Retraction Watch #73988." in response
-    assert "Confirm which work" in response
+    assert "Query: Modeling Geometry and Semantics of Physical Damages" in response
 
 
 def test_sample_two_is_one_row_in_the_same_format():
@@ -209,7 +210,7 @@ def test_a_distant_title_is_not_offered_for_confirmation():
         catalog=get_catalog(),
         crossref=Far(),
     )
-    assert "Confirm which work" not in result["response"]
+    assert "Confirm which title you meant" not in result["response"]
     assert "Paste the full title, authors and DOI." in result["response"]
     assert labels_in(result["response"]) == ["UNCONFIRMED"]
 
@@ -383,7 +384,10 @@ def test_a_clear_result_claims_a_match_only_when_it_was_tested():
     )[0]
     assert other["label"] == "UNCONFIRMED"
     assert other["reason"] == "Exists, no retraction data"
-    assert other["found"].startswith("DataCite has a record for this paper, so it exists.")
+    assert other["found"] == (
+        "DataCite has this paper. The Retraction Watch file does not cover this publisher, "
+        "so a retraction or correction could not be checked."
+    )
     assert "This paper exists" not in other["found"]
     assert other["action"].startswith("Look it up on the arXiv or publisher page")
 
@@ -416,7 +420,29 @@ def test_each_reason_line_follows_the_status():
     assert live["reason"] == "Live check did not return"
     unmatched = one({"title": "No such paper title here"}, {"status": "title_unverified", "query": "No such paper title here"})
     assert unmatched["reason"] == "No matching record found"
+    assert unmatched["found"] == "This title did not match one paper."
     assert unmatched["action"] == "Paste the full title, authors and DOI."
+    close_query = "Modeling Geometry and Semantics of Physical Damages"
+    close = build_verdicts(
+        [{"title": close_query}],
+        [
+            {
+                "name": "record_status",
+                "args": {"title": close_query},
+                "result": json.dumps({"status": "title_unverified", "query": close_query}),
+            },
+            {
+                "name": "crossref_title",
+                "args": {"title": close_query},
+                "result": json.dumps(
+                    {"candidates": [{"title": close_query + " using IFC", "doi": "10.1000/ifc"}]}
+                ),
+            },
+        ],
+        "fb5f174f",
+    )[0]
+    assert close["found"] == "This title did not match one paper."
+    assert close["action"] == "Confirm which title you meant. The choices are listed under the table."
     js = (ROOT / "frontend" / "app.js").read_text()
     block = js.split("const SEVERITY", 1)[1].split("};", 1)[0]
     ranks = [block.index(label) for label in ("DO NOT CITE", "DOESN'T CHECK OUT", "CHECK FIRST", "UNCONFIRMED", "NO ISSUES FOUND")]

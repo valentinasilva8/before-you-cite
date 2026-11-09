@@ -27,7 +27,7 @@ def test_bibliography_is_csv_then_crossref_and_strips_guesses():
     assert "the paper is fine" not in first["response"].casefold()
     assert "70548" not in first["response"]
     assert "70104" in first["response"]
-    assert "Confirm which work" in first["response"]
+    assert first["response"].startswith("Confirm which title you meant. The choices are listed under the table.")
     names = [call["name"] for call in first["tool_calls"]]
     assert names.index("rw_lookup_doi") < names.index("crossref_doi")
     assert "crossref_title" in names

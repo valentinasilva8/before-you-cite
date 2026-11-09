@@ -57,7 +57,7 @@ A new session starts blank. Refresh the page or click New session before a query
 - **DO NOT CITE.** A retraction is on record, or the link you pasted is the retraction notice.
 - **DOESN'T CHECK OUT.** The link goes to a different paper, or no registry has this DOI. It cannot be cited as written.
 - **CHECK FIRST.** A correction, expression of concern, or other notice is on record. Read it before citing.
-- **UNCONFIRMED.** The check did not finish. The title did not match a Crossref record exactly, the live lookup did not return, the registry has no retraction data (such as arXiv), or the item is not a paper. Check it yourself.
+- **UNCONFIRMED.** The check did not finish. The title did not match one paper, the live lookup did not return, DataCite has the paper but the Retraction Watch file does not cover that publisher, or the item is not a paper. When a title is close, confirm which one you meant from the list under the table.
 - **NO ISSUES FOUND.** A registry has a record and no retraction or correction was found. That does not check whether the paper's content fits your case, and it is not proof the paper is sound.
 
 ## Run it
@@ -96,7 +96,7 @@ Yes, use this exact title:
 Modeling Geometry and Semantics of Physical Damages using IFC
 ```
 
-Turn 1 is the same table format as sample 4, with three rows: DO NOT CITE for `10.3390/nano10122325` (Retraction Watch #70104, notice date 2026-02-25), NO ISSUES FOUND for `10.1038/s41586-021-03819-2` when Crossref returns no update, and UNCONFIRMED for the shortened title. The shortened title has 0 exact extract rows, so turn 1 does not cite record 70548. A Crossref candidate is listed only when at least half of its words are in the pasted title, and at most three are shown. If none qualify, the row says: Paste the full title, authors and DOI.
+Turn 1 is the same table format as sample 4, with three rows: DO NOT CITE for `10.3390/nano10122325` (Retraction Watch #70104, notice date 2026-02-25), NO ISSUES FOUND for `10.1038/s41586-021-03819-2` when Crossref returns no update, and UNCONFIRMED for the shortened title. The shortened title has 0 exact extract rows, so turn 1 does not cite record 70548. A Crossref candidate is listed only when at least half of its words are in the pasted title, and at most three are shown. If one qualifies, the response starts with "Confirm which title you meant. The choices are listed under the table." Clicking a title puts it in the box. If none qualify, the row says: Paste the full title, authors and DOI.
 
 Turn 2 is one row, DO NOT CITE, for the exact title. Retraction Watch #70548, notice date 2023-10-18. Journal `EG-ICE 2020 Workshop on Intelligent Computing in Engineering`. Publisher `Technische Universitat Berlin`. Both DOI fields in the extract are `unavailable`. Reason: legal reasons or threats.
 
@@ -156,7 +156,7 @@ Audit these citations. Use the full citation: title, authors, and link.
 8. https://doi.org/10.1039/D1RA07974C
 ```
 
-The verdicts, in order, are DO NOT CITE, DOESN'T CHECK OUT, UNCONFIRMED, DOESN'T CHECK OUT, UNCONFIRMED, UNCONFIRMED, DO NOT CITE, DO NOT CITE. Row 5 names a close work only when a title candidate shares at least half its words with the paste.
+The verdicts, in order, are DO NOT CITE, DOESN'T CHECK OUT, UNCONFIRMED, DOESN'T CHECK OUT, UNCONFIRMED, UNCONFIRMED, DO NOT CITE, DO NOT CITE. Row 5 names a close work only when a title candidate shares at least half its words with the paste. When one does, the response starts with "Confirm which title you meant. The choices are listed under the table." Clicking a title puts that paper in the box.
 
 ```
 3 do not cite, 2 doesn't check out, 3 unconfirmed.
@@ -165,9 +165,9 @@ The verdicts, in order, are DO NOT CITE, DOESN'T CHECK OUT, UNCONFIRMED, DOESN'T
 | --- | --- | --- | --- |
 | 1 | DO NOT CITE — Retraction on record | The retraction is dated 2026-02-25. The recorded reasons are concerns about data, concerns about image, and investigation by the journal or publisher. Retraction Watch #70104. | Leave it out of your bibliography. |
 | 2 | DOESN'T CHECK OUT — Link is a different paper | This link goes to a different paper than the one you pasted. The pasted title is Magnetic Ionic Liquid Nanocatalyst to Improve Mechanical and Thermal Properties of Epoxy Nanocomposites. The DOI resolves to Highly accurate protein structure prediction with AlphaFold, Jumper, 2021. | Find the paper you meant and use its link. |
-| 3 | UNCONFIRMED — Exists, no retraction data | DataCite has a record for this paper, so it exists. That registry gives us no retraction or correction data, so we could not check for either. | Look it up on the arXiv or publisher page and check for a withdrawal or retraction notice before citing. |
+| 3 | UNCONFIRMED — Exists, no retraction data | DataCite has this paper. The Retraction Watch file does not cover this publisher, so a retraction or correction could not be checked. | Look it up on the arXiv or publisher page and check for a withdrawal or retraction notice before citing. |
 | 4 | DOESN'T CHECK OUT — DOI not found in any registry | No registry (Crossref or DataCite) has a record for this DOI. It may be mistyped or invented, but this alone is not proof. | Check the DOI by hand, or find the real source. |
-| 5 | UNCONFIRMED — No matching record found | We could not find a registry record that matches this citation. We search Crossref by title and accept only an exact title match, and anything else you pasted must agree. | The pasted title is not an exact match for one work. |
+| 5 | UNCONFIRMED — No matching record found | This title did not match one paper. | Confirm which title you meant. The choices are listed under the table. |
 | 6 | UNCONFIRMED — Not a paper | This is not a paper citation, for example a news article, so it was not checked. | It was not checked. |
 | 7 | DO NOT CITE — Link is the retraction notice | This DOI is the retraction notice, so the paper was retracted. Retraction Watch #70104. | Leave it out. The original paper is 10.3390/nano10122325, Magnetic Ionic Liquid Nanocatalyst to Improve Mechanical and Thermal Properties of Epoxy Nanocomposites. |
 | 8 | DO NOT CITE — Retraction on record | An expression of concern was recorded earlier, on 2024-09-27. The retraction is dated 2026-07-24. The recorded reasons are duplication of data, duplication of an image, and original data or images not provided. Retraction Watch #73988. | Leave it out of your bibliography. |

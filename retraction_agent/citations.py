@@ -161,17 +161,19 @@ def _pending_dois(pending: list[dict]) -> set[str]:
     return found
 
 
+CONFIRM_NOTE = "Confirm which title you meant. The choices are listed under the table."
+
+
 def confirmation_question(pending: list[dict]) -> str:
-    lines = [
-        "A title was not an exact match, so I am not citing it.",
-        "Confirm which work you mean, or paste the exact title.",
-    ]
+    lines = []
     for item in pending:
         lines.append(f"Query: {item.get('query')}")
         for index, candidate in enumerate(item.get("candidates") or [], start=1):
-            title = candidate.get("title") or "(no title)"
-            doi = candidate.get("doi") or "(no DOI)"
-            lines.append(f"{index}. {title} ({doi})")
+            title = " ".join(str(candidate.get("title") or "(no title)").split())
+            lines.append(f"{index}. {title}")
+            doi = " ".join(str(candidate.get("doi") or "").split())
+            if doi:
+                lines.append(f"DOI: {doi}")
     return "\n".join(lines)
 
 
