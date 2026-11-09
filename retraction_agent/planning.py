@@ -55,7 +55,7 @@ DEFAULT_ASK = (
     "A topic alone is not enough to search this extract. "
     "Paste a DOI, a bibliography of up to 25 references, "
     "or the journal or publisher string from the extract. I will not pick a paper for you. "
-    "Paste the full citation as it was written: title, authors, and link, not the link alone."
+    "Paste your references, up to 25. A title and authors is enough, and a DOI or link makes the check more reliable."
 )
 
 NAME_ONLY_ASK = (

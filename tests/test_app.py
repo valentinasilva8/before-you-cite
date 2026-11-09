@@ -16,7 +16,7 @@ def test_health_and_page():
     assert page.status_code == 200
     text = page.text
     assert "Before You Cite" in text
-    assert "not a clean bill of health" in text
+    assert "not proof the paper is sound" in text
     assert "fb5f174f" in text
     samples = client.get("/samples").json()
     assert samples["prompts"] == PROMPTS
