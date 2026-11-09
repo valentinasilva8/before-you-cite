@@ -36,24 +36,30 @@ INTEGRITY_SAMPLE = """Audit these citations. Use the full citation: title, autho
 """
 
 CHATGPT_LINK = (
-    "Can you check if this reference ChatGPT gave me exists?\n"
+    "An AI assistant gave me this reference. Can you check that it exists?\n"
     "https://doi.org/10.3390/nano10122325"
 )
 CHATGPT_CITATION = (
-    "Can you check if this reference ChatGPT gave me is real?\n"
+    "Gemini suggested this citation for my paper. Is it real, and has it been retracted?\n"
     "Shu et al. (2012). Signing at the beginning makes ethics salient and decreases "
     "dishonest self-reports in comparison to signing at the end. "
     "https://www.pnas.org/doi/10.1073/pnas.1209746109"
 )
 CHATGPT_NATURE = (
-    "ChatGPT told me to cite this. Does it exist, and was it retracted?\n"
+    "Copilot gave me this link. Is it a real paper?\n"
     "https://www.nature.com/articles/s41586-021-03819-2"
+)
+CHATGPT_CLEAN = (
+    "ChatGPT gave me this source for my essay. Is it real, and has it been retracted?\n"
+    "LeCun, Y., Bengio, Y., & Hinton, G. (2015). Deep learning. Nature, 521, 436-444. "
+    "https://doi.org/10.1038/nature14539"
 )
 
 PROMPTS = {
     "chatgpt_link": CHATGPT_LINK,
     "chatgpt_citation": CHATGPT_CITATION,
     "chatgpt_nature": CHATGPT_NATURE,
+    "chatgpt_clean": CHATGPT_CLEAN,
 }
 
 

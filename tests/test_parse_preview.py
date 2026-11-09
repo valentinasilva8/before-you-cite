@@ -103,6 +103,32 @@ def test_a_chatgpt_link_is_read_as_the_doi_not_the_question():
     assert nature["items"][0]["title"] == ""
 
 
+def test_a_paused_preview_does_not_call_the_extractor():
+    called = {"n": 0}
+
+    def complete(messages, tools):
+        called["n"] += 1
+        return Reply("done")
+
+    result = parse_message("1. Smith (2012).", complete_fn=complete, fallback=False)
+    assert called["n"] == 0
+    assert result["items"][0]["parsed_by"] == "unreadable"
+    client = TestClient(app)
+    body = client.post("/parse", json={"message": "https://doi.org/10.1000/example-1", "fallback": False}).json()
+    assert body["items"][0]["parsed_by"] == "rules"
+    assert body["items"][0]["doi"] == "10.1000/example-1"
+
+
+def test_samples_offer_the_clean_source():
+    from retraction_agent.samples import CHATGPT_CLEAN, PROMPTS
+
+    assert list(PROMPTS) == ["chatgpt_link", "chatgpt_citation", "chatgpt_nature", "chatgpt_clean"]
+    assert CHATGPT_CLEAN.startswith("ChatGPT gave me this source for my essay.")
+    assert "10.1038/nature14539" in CHATGPT_CLEAN
+    body = TestClient(app).get("/samples").json()
+    assert body["prompts"]["chatgpt_clean"] == CHATGPT_CLEAN
+
+
 def test_a_question_has_no_preview_items():
     result = parse_message("Has CRISPR been retracted?", complete_fn=scripted_complete())
     assert result == {"items": [], "truncated": False}
@@ -201,6 +227,15 @@ PAGE = """<!DOCTYPE html>
     input.dispatchEvent(new Event("input"));
     const problem = row.querySelector(".preview-problem");
     document.body.setAttribute("data-problem", problem && !problem.hidden && problem.textContent ? "yes" : "no");
+    const older = document.createElement("p");
+    older.textContent = "older result";
+    addResult("older paste", older);
+    const newer = document.createElement("p");
+    newer.textContent = hostile;
+    addResult("newer paste", newer);
+    const cards = [...document.querySelectorAll(".result-card")];
+    const newest = cards[0] && cards[0].textContent.includes("newer paste") && cards[1].textContent.includes("older result");
+    document.body.setAttribute("data-newest", newest ? "yes" : "no");
   </script>
 </body>
 </html>
@@ -236,6 +271,7 @@ def test_preview_escapes_html_and_refuses_an_invented_field(tmp_path):
     assert 'data-unread="yes"' in dom
     assert 'data-escaped="yes"' in dom
     assert 'data-problem="yes"' in dom
+    assert 'data-newest="yes"' in dom
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in dom
     assert "<script>alert(1)</script>" not in dom
     assert "<img src=x onerror=alert(1)>" not in dom

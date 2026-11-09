@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Before You Cite</title>
-  <link rel="stylesheet" href="/static/styles.css?v=4">
+  <link rel="stylesheet" href="/static/styles.css?v=5">
 </head>
 <body>
   <header class="top">
@@ -29,21 +29,32 @@
       <h2>Who it is for</h2>
       <p>You got a reference from ChatGPT or another chatbot and you want to know if you can cite it.</p>
     </article>
-    <article class="info-box">
+    <article class="info-box how-to">
       <h2>How to use it</h2>
       <p>Paste what the chatbot wrote, including the link. Up to 25. A DOI is the paper's permanent ID. It looks like 10.1038/nature14539. A normal link works too. "No notice found" means we found no retraction. That is not proof the paper is sound.</p>
+      <ul class="legend">
+        <li><span class="chip chip-red">DO NOT CITE</span><span>A retraction is on record for this citation.</span></li>
+        <li><span class="chip chip-amber">CHECK FIRST</span><span>A notice other than a retraction is on record.</span></li>
+        <li><span class="chip chip-amber">WRONG LINK</span><span>This link is a different paper from the pasted citation.</span></li>
+        <li><span class="chip chip-amber">WRONG KIND OF LINK</span><span>This DOI is the retraction notice, not the original paper.</span></li>
+        <li><span class="chip chip-amber">NOT FOUND</span><span>No registration agency has this DOI.</span></li>
+        <li><span class="chip chip-amber">COULD NOT VERIFY</span><span>The citation could not be read, or the live check did not return.</span></li>
+        <li><span class="chip chip-blue">NO NOTICE FOUND</span><span>No notice is on record. That is not proof the paper is sound.</span></li>
+        <li><span class="chip chip-grey">FOUND CAN'T CHECK RETRACTIONS</span><span>The citation was found, and there is no retraction or correction source for this record.</span></li>
+        <li><span class="chip chip-grey">NOT A PAPER</span><span>This item is not a paper citation.</span></li>
+      </ul>
+      <p class="legend-try">Try the last example to see a source that comes back clean.</p>
     </article>
   </section>
 
   <main>
     <section class="chat" aria-label="Conversation">
       <div id="samples" class="samples"></div>
-      <p id="pending" class="pending" hidden></p>
       <form id="composer">
         <label for="question" class="sr">Question</label>
         <textarea id="question" rows="4" placeholder="Paste what ChatGPT gave you, including the link."></textarea>
         <div class="actions">
-          <button type="submit" id="send">Ask</button>
+          <button type="button" id="run" disabled>Run check</button>
           <button type="button" id="clear">New session</button>
         </div>
       </form>
@@ -51,9 +62,10 @@
         <p class="preview-note">This is how we read your paste. Change a field only if it is wrong, then run the check.</p>
         <div id="preview-list"></div>
         <p id="preview-truncated" class="preview-note" hidden>Only the first 25 references are included.</p>
-        <button type="button" id="run" disabled>Run check</button>
       </div>
-      <div id="log" class="log" aria-live="polite"></div>
+      <div id="log" class="log" aria-live="polite">
+        <p id="pending" class="pending" hidden></p>
+      </div>
     </section>
     <aside class="tools" aria-label="How the agents worked">
       <details class="work">
@@ -66,6 +78,6 @@
   <footer>
     <p>Retraction Watch database via Crossref, CC0. Crossref REST calls use a polite mailto and do not store abstracts. Publisher strings are quoted as the file and as Crossref wrote them.</p>
   </footer>
-  <script src="/static/app.js?v=4"></script>
+  <script src="/static/app.js?v=5"></script>
 </body>
 </html>

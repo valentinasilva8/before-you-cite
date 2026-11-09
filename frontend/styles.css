@@ -74,9 +74,11 @@ h1 { font-size: 40px; line-height: 1.1; }
   width: min(1100px, calc(100% - 32px));
   margin: 0 auto 8px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
 }
+
+.info-box:nth-child(3) { grid-column: 1 / -1; }
 
 .info-box {
   background: var(--card);
@@ -95,6 +97,27 @@ h1 { font-size: 40px; line-height: 1.1; }
   font-size: 15px;
   line-height: 1.4;
 }
+
+.legend {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend li {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.legend .chip { white-space: normal; }
+
+.legend-try { margin-top: 8px; font-size: 13px; }
 
 .chat, .tools {
   background: var(--card);
@@ -136,7 +159,20 @@ main {
   border-color: var(--ink);
 }
 
-.log { display: flex; flex-direction: column; gap: 12px; min-height: 180px; }
+.log { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+
+.result-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+}
+
+.result-head {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
 
 .bubble { white-space: pre-wrap; }
 .bubble.user { color: var(--muted); }
@@ -265,18 +301,27 @@ textarea {
 
 .preview-fields {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 72px 1fr;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 5.5rem minmax(0, 1.3fr);
   gap: 8px;
+}
+
+.preview-row > .read-badge,
+.preview-row > .read-note {
+  justify-self: start;
+  width: auto;
 }
 
 .preview-row label {
   display: grid;
   gap: 2px;
+  min-width: 0;
   font-size: 12px;
   font-weight: 600;
 }
 
 .preview-row input {
+  width: 100%;
+  min-width: 0;
   font: inherit;
   font-weight: 400;
   border: 1px solid var(--line);

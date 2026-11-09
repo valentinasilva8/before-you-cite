@@ -59,6 +59,7 @@ class ParsedItem(BaseModel):
 
 class ParseRequest(BaseModel):
     message: str
+    fallback: bool = True
 
 
 class ParseResponse(BaseModel):
@@ -95,7 +96,7 @@ def samples():
 
 @app.post("/parse", response_model=ParseResponse)
 def parse(request: ParseRequest):
-    return parse_message(request.message)
+    return parse_message(request.message, fallback=request.fallback)
 
 
 @app.post("/chat", response_model=ChatResponse)
