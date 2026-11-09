@@ -47,7 +47,7 @@ class ChatResponse(BaseModel):
 
 @app.get("/")
 def index():
-    return FileResponse(FRONTEND / "index.html")
+    return FileResponse(FRONTEND / "index.html", headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/health")
@@ -87,7 +87,14 @@ def clear(session_id: str | None = None):
     return {"status": "ok"}
 
 
-app.mount("/static", StaticFiles(directory=FRONTEND), name="static")
+class NoCacheStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+app.mount("/static", NoCacheStaticFiles(directory=FRONTEND), name="static")
 
 
 if __name__ == "__main__":

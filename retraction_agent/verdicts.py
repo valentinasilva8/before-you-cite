@@ -4,7 +4,6 @@ import json
 import re
 
 from retraction_agent.citations import units
-from retraction_agent.identity import EXISTS_NO_INTEGRITY
 from retraction_agent.normalize import normalize_doi, normalize_title
 
 FOOTER = (
@@ -162,70 +161,86 @@ def _decide(ref, code, status, rows, work, calls, snapshot_short) -> tuple[str, 
     if code == "not_checkable" or ref.get("not_checkable"):
         return (
             "NOT A PAPER",
-            f"This item is not a paper citation, snapshot {short}.",
-            "It was not checked.",
+            "This item is not a paper citation.",
+            "This item was not checked as a paper.",
         )
     if code == "doi_not_registered":
         return (
             "NOT FOUND",
-            f"No registration agency has this DOI, snapshot {short}.",
-            "This DOI may be mistyped or invented. Check it by hand. It is not proof.",
+            "No registration agency has this DOI.",
+            "This DOI may be mistyped or invented. It is not proof.",
         )
     if code == "identity_mismatch":
-        return ("WRONG LINK", _mismatch_found(ref, status, short), "Use the paper you meant. This link is a different paper.")
+        return (
+            "WRONG LINK",
+            _mismatch_found(ref, status, short),
+            "This link is a different paper from the pasted citation.",
+        )
     notice = _notice_only(ref.get("doi"), rows)
     if notice:
         original = notice.get("original_doi") or "unavailable"
         title = notice.get("title") or "the original paper"
         return (
             "WRONG KIND OF LINK",
-            f"This DOI is the retraction notice. {_watch(notice.get('record_id'), short)}",
+            f"This DOI is the retraction notice. {_watch(notice.get('record_id'), short)}".strip(),
             f"The link is the retraction notice. The original paper is {original}, {title}.",
         )
     retraction = _latest(rows, "retraction")
     if retraction or _nature_count(ref, calls, "Retraction"):
-        return ("DO NOT CITE", _retraction_found(rows, retraction, calls, ref, short), "Leave this paper out of the bibliography.")
+        return (
+            "DO NOT CITE",
+            _retraction_found(rows, retraction, calls, ref, short),
+            "A retraction is on record for this citation.",
+        )
     update = _retraction_update(work)
     if update and not retraction:
-        return ("DO NOT CITE", _update_found(update, short, retraction=True), "Leave this paper out of the bibliography.")
+        return ("DO NOT CITE", _update_found(update, short, retraction=True), "A retraction is on record for this citation.")
     concern = _latest(rows, "expression of concern")
     correction = _latest(rows, "correction")
     reinstatement = _latest(rows, "reinstatement")
     if concern or correction or reinstatement:
-        return ("CHECK FIRST", _check_found(concern, correction, reinstatement, short), "Read that notice before citing.")
+        return (
+            "CHECK FIRST",
+            _check_found(concern, correction, reinstatement, short),
+            "A notice other than a retraction is on record.",
+        )
     other = _other_update(work)
     if other:
-        return ("CHECK FIRST", _update_found(other, short, retraction=False), "Read that notice before citing.")
+        return (
+            "CHECK FIRST",
+            _update_found(other, short, retraction=False),
+            "A notice other than a retraction is on record.",
+        )
     if code == "title_unverified":
         query = status.get("query") or ref.get("title") or ""
         close = select_candidates(query, _candidates(query, calls))
         action = (
-            "Confirm which work you mean, or paste the full title, authors, and DOI."
+            "The pasted title is not an exact match for one work."
             if close
             else "No close match found. Paste the full title, authors, and DOI."
         )
-        return ("COULD NOT VERIFY", f"The title could not be verified, snapshot {short}.", action)
+        return ("COULD NOT VERIFY", "The title could not be verified.", action)
     if code == "exists_no_integrity_source":
         return (
             "FOUND CAN'T CHECK RETRACTIONS",
-            f"{EXISTS_NO_INTEGRITY[:-1]}, snapshot {short}.",
-            "An empty extract row is not a clean result.",
+            "The citation was found and matches. There is no retraction or correction source for this record, so integrity was not checked.",
+            "The extract has no row for this record.",
         )
     if code == "doi_other_agency":
         return (
             "FOUND CAN'T CHECK RETRACTIONS",
-            f"The DOI is registered with another agency. Crossref notices are unavailable for it, snapshot {short}.",
-            "An empty extract row is not a clean result.",
+            "The DOI is registered with another agency, and Crossref notices are unavailable for it.",
+            "The extract has no row for this record.",
         )
     if code == "registration_unchecked" or _work_failed(work):
         return (
             "COULD NOT VERIFY",
-            f"The live registration or update check did not return, snapshot {short}.",
-            "Check this citation by hand. The missing check is not proof.",
+            "The live registration or update check did not return.",
+            "The missing live check is not proof that the paper is absent.",
         )
     return (
         "NO NOTICE FOUND",
-        f"The DOI is registered and nothing in the pasted citation disagreed. No notice is on record, snapshot {short}.",
+        "The DOI is registered and nothing in the pasted citation disagreed. No notice is on record.",
         "This is not a guarantee of quality.",
     )
 
@@ -233,18 +248,21 @@ def _decide(ref, code, status, rows, work, calls, snapshot_short) -> tuple[str, 
 def _retraction_found(rows, retraction, calls, ref, short) -> str:
     if not retraction:
         record_id = _first_record_id(ref, calls)
-        return f"A retraction is on record. {_watch(record_id, short)}"
+        watched = _watch(record_id, short)
+        return "A retraction is on record." if not watched else f"A retraction is on record. {watched}"
     parts = []
     earlier = _earlier_concern(rows, retraction)
     if earlier:
         when = earlier.get("retraction_date_iso") or earlier.get("retraction_date") or "an undated notice"
         parts.append(f"An expression of concern was recorded earlier, on {when}.")
     when = retraction.get("retraction_date_iso") or retraction.get("retraction_date") or "an undated notice"
-    parts.append(f"Retraction dated {when}.")
+    parts.append(f"The retraction is dated {when}.")
     reasons = _reasons(retraction.get("reasons") or [])
     if reasons:
-        parts.append(f"Reasons: {reasons}.")
-    parts.append(_watch(retraction.get("record_id"), short))
+        parts.append(f"The recorded reasons are {reasons}.")
+    watched = _watch(retraction.get("record_id"), short)
+    if watched:
+        parts.append(watched)
     return " ".join(parts)
 
 
@@ -266,11 +284,14 @@ def _check_found(concern, correction, reinstatement, short) -> str:
             parts.append(f"A correction is on record, dated {when}.")
     elif lead is reinstatement and not parts:
         parts.append("This paper was reinstated.")
-    parts.append(_watch((lead or {}).get("record_id"), short))
+    watched = _watch((lead or {}).get("record_id"), short)
+    if watched:
+        parts.append(watched)
     return " ".join(parts)
 
 
 def _mismatch_found(ref, status, short) -> str:
+    del short
     pasted = (status.get("pasted") or {}).get("title") or ref.get("title") or "the pasted citation"
     returned = status.get("returned") or {}
     title = returned.get("title") or "a different paper"
@@ -278,7 +299,7 @@ def _mismatch_found(ref, status, short) -> str:
     year = returned.get("year")
     year_text = str(year) if year not in {None, ""} else "unknown year"
     return (
-        f"The pasted title is {pasted}. The DOI resolves to {title}, {author}, {year_text}, snapshot {short}."
+        f"The pasted title is {pasted}. The DOI resolves to {title}, {author}, {year_text}."
     )
 
 
@@ -287,18 +308,19 @@ def _update_found(item: dict, short: str, retraction: bool) -> str:
     record_id = item.get("record_id")
     source = (item.get("source") or "").casefold()
     watch = "retraction" in source or "watch" in source
-    kind = "Retraction" if retraction else "An update"
     if watch and record_id:
-        return f"{kind} dated {when}. {_watch(record_id, short)}"
+        lead = "The retraction" if retraction else "The update"
+        return f"{lead} is dated {when}. {_watch(record_id, short)}"
     if retraction:
-        return f"Crossref lists a retraction dated {when}, snapshot {short}."
-    return f"Crossref lists an update dated {when}, snapshot {short}."
+        return f"Crossref lists a retraction dated {when}."
+    return f"Crossref lists an update dated {when}."
 
 
 def _watch(record_id, short: str) -> str:
+    del short
     if record_id:
-        return f"Retraction Watch #{record_id}, snapshot {short}."
-    return f"snapshot {short}."
+        return f"Retraction Watch #{record_id}."
+    return ""
 
 
 def _earlier_concern(rows: list[dict], retraction: dict) -> dict | None:

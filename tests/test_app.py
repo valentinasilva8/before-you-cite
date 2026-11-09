@@ -22,6 +22,14 @@ def test_health_and_page():
     assert samples["prompts"] == PROMPTS
 
 
+def test_static_files_send_no_cache():
+    client = TestClient(app)
+    for path in ("/static/app.js", "/static/styles.css"):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == "no-cache"
+
+
 def test_chat_shape_and_session(monkeypatch):
     def fake(session, message, **kwargs):
         return {
