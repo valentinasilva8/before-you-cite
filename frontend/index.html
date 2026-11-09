@@ -27,11 +27,11 @@
     </article>
     <article>
       <h2>Who it is for</h2>
-      <p>Someone about to cite a paper, a journal, or a publisher, and the course grader who wants the tool log next to the answer.</p>
+      <p>Someone about to cite a paper, a journal, or a publisher, and the course grader who can open how the agents worked.</p>
     </article>
     <article>
       <h2>How to use it</h2>
-      <p>Paste the full citation as the model wrote it: title, authors, and link, not the link alone. A bibliography can hold up to 25 references. A journal or publisher name has to appear as it does in the extract. A topic alone gets a question back. A title with no DOI is compared with the Crossref hit and confirmed in this chat when it is not an exact match. No record is not a clean bill of health. It is a limit of this file.</p>
+      <p>Paste the full citation as the model wrote it: title, authors, and link, not the link alone. A bibliography can hold up to 25 references. A journal or publisher name has to appear as it does in the extract. A topic alone gets a question back. A title with no DOI is compared with Crossref. At most three candidates are shown, and only when half their words are in the pasted title. No record is not a clean bill of health. It is a limit of this file.</p>
     </article>
   </section>
 
@@ -49,10 +49,12 @@
         </div>
       </form>
     </section>
-    <aside class="tools" aria-label="Tool log">
-      <h2>Tool log</h2>
-      <p class="aside-note">Each call names the agent that ran it. The result is the string the model saw.</p>
-      <div id="tools"></div>
+    <aside class="tools" aria-label="How the agents worked">
+      <details class="work">
+        <summary>Show how the agents worked</summary>
+        <p class="aside-note">Each call names the agent that ran it. The result is the string the model saw.</p>
+        <div id="tools"></div>
+      </details>
     </aside>
   </main>
   <footer>

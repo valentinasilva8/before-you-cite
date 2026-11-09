@@ -23,27 +23,23 @@ STATUS_NOTES = {
         "No registration agency has this DOI. That is a signal to check the citation by hand. It is not proof."
     ),
     "doi_other_agency": (
-        "This DOI is registered, but not with Crossref, so Crossref notices are unavailable. "
-        "That is not suspicious. The local extract was still checked by DOI. "
-        "An empty extract row is not a clean bill of health."
+        "This DOI is registered with an agency other than Crossref. Crossref notices are unavailable for it. "
+        "The local extract was checked by DOI. An empty extract row is not a clean bill of health."
     ),
     "title_unverified": (
         "There is no DOI, and there is no confident Crossref title match. "
         "The citation could not be verified."
     ),
     "identity_mismatch": (
-        "The DOI resolves, but the returned title, first author, or year differs from the pasted citation. "
-        "Both sides are in this result. Do not treat the returned work as the pasted paper."
+        "The DOI resolves to a record whose title, first author, or year differs from the pasted citation. "
+        "Both sides are in this result."
     ),
     "not_checkable": "This item has no DOI and no title, so it was not checked.",
     "exists_no_integrity_source": EXISTS_NO_INTEGRITY,
-    "registered_crossref": (
-        "The DOI is registered with Crossref. A following extract row of zero is a data limit, not a clean result."
-    ),
+    "registered_crossref": "The DOI is registered with Crossref.",
     "extract_title_match": "The pasted title matches one row in the local extract.",
     "registration_unchecked": (
-        "The agency lookup did not return, so registration was not decided. "
-        "The extract lookup still ran. An empty row is not a clean bill of health."
+        "The agency lookup did not return, so registration was not decided. The extract lookup still ran."
     ),
 }
 
