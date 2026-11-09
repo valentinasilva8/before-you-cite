@@ -18,6 +18,8 @@ def complete(messages: list[dict], tools: list | None):
     }
     if tools:
         kwargs["tools"] = tools
+    # Ordinary function tools. Skip LiteLLM's MCP handler, which imports the mcp package.
+    kwargs["_skip_mcp_handler"] = True
     kwargs["timeout"] = 45
     return litellm.completion(**kwargs).choices[0].message
 
