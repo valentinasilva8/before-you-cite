@@ -247,6 +247,61 @@ textarea {
 
 .actions { display: flex; gap: 8px; margin-top: 8px; }
 
+.preview { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+.preview[hidden] { display: none; }
+
+.preview-note { color: var(--muted); font-size: 13px; }
+
+.preview-row {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.preview-raw { color: var(--muted); font-size: 12px; }
+
+.preview-fields {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 72px 1fr;
+  gap: 8px;
+}
+
+.preview-row label {
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.preview-row input {
+  font: inherit;
+  font-weight: 400;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: #fff;
+}
+
+.preview-row input:disabled { background: var(--paper); color: var(--muted); }
+
+.preview-problem { color: var(--accent); font-weight: 400; font-size: 12px; }
+
+#run {
+  font: inherit;
+  align-self: start;
+  border-radius: 999px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+#run:disabled { opacity: 0.45; cursor: default; }
+
 .tools h2 { font-size: 22px; margin-bottom: 4px; }
 
 .call {
@@ -286,6 +341,7 @@ footer { padding-bottom: 28px; }
 @media (max-width: 800px) {
   main { grid-template-columns: 1fr; }
   .info-boxes { grid-template-columns: 1fr; }
+  .preview-fields { grid-template-columns: 1fr; }
   .top { flex-direction: column; align-items: start; }
   h1 { font-size: 32px; }
 }
