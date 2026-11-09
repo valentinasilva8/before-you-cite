@@ -57,6 +57,109 @@
       "input": "https://www.nature.com/articles/s41586-021-03819-2",
       "expected_label": "NO NOTICE FOUND",
       "row_contains": ["No notice is on record."]
+    },
+    {
+      "id": "llm-mla-shu",
+      "input": "Shu, Lisa L., et al. \"Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end.\" Proceedings of the National Academy of Sciences, vol. 109, no. 38, 2012, pp. 15197-15200.",
+      "llm_items": [
+        {
+          "raw_line_index": 0,
+          "title": "Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end",
+          "authors": "Shu, Lisa L., et al.",
+          "year": "2012",
+          "venue": "Proceedings of the National Academy of Sciences",
+          "doi": "",
+          "url": ""
+        }
+      ],
+      "expected_label": "DO NOT CITE",
+      "row_contains": ["Retraction Watch #32321."]
+    },
+    {
+      "id": "llm-vancouver-shu",
+      "input": "Shu LL, Mazar N, Gino F, Ariely D, Bazerman MH. Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end. Proc Natl Acad Sci. 2012;109(38):15197-15200.",
+      "llm_items": [
+        {
+          "raw_line_index": 0,
+          "title": "Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end",
+          "authors": "Shu LL, Mazar N, Gino F, Ariely D, Bazerman MH",
+          "year": "2012",
+          "venue": "Proc Natl Acad Sci",
+          "doi": "",
+          "url": ""
+        }
+      ],
+      "expected_label": "DO NOT CITE",
+      "row_contains": ["Retraction Watch #32321."]
+    },
+    {
+      "id": "llm-bibtex-shu",
+      "input": "@article{shu2012, author={Shu, Lisa L.}, title={Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end}, year={2012}, doi={10.1073/pnas.1209746109}}",
+      "llm_items": [
+        {
+          "raw_line_index": 0,
+          "title": "Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end",
+          "authors": "Shu, Lisa L.",
+          "year": "2012",
+          "venue": "",
+          "doi": "10.1073/pnas.1209746109",
+          "url": ""
+        }
+      ],
+      "expected_label": "DO NOT CITE",
+      "row_contains": ["Retraction Watch #32321."]
+    },
+    {
+      "id": "llm-corrected-title-rejected",
+      "input": "Coastal erosion and sediment transport in deltas is the pasted title here.",
+      "llm_items": [
+        {
+          "raw_line_index": 0,
+          "title": "Coastal erosion and sediment transport in river deltas is the pasted title here.",
+          "authors": "",
+          "year": "",
+          "venue": "",
+          "doi": "",
+          "url": ""
+        }
+      ],
+      "expected_label": "COULD NOT VERIFY",
+      "row_contains": ["We could not read this citation."]
+    },
+    {
+      "id": "llm-invented-doi-rejected",
+      "input": "Coastal erosion and sediment transport in deltas is the pasted title here.",
+      "llm_items": [
+        {
+          "raw_line_index": 0,
+          "title": "Coastal erosion and sediment transport in deltas is the pasted title here.",
+          "authors": "",
+          "year": "",
+          "venue": "",
+          "doi": "10.9999/invented-not-in-the-line",
+          "url": ""
+        }
+      ],
+      "expected_label": "COULD NOT VERIFY",
+      "row_contains": ["We could not read this citation."],
+      "row_excludes": ["10.9999/invented-not-in-the-line"]
+    },
+    {
+      "id": "llm-short-count-rejected",
+      "input": "Pasted line one is about coastal erosion and sediment transport.\nPasted line two is about glacier mass balance trends over decades.",
+      "llm_items": [
+        {
+          "raw_line_index": 0,
+          "title": "Pasted line one is about coastal erosion and sediment transport.",
+          "authors": "",
+          "year": "",
+          "venue": "",
+          "doi": "",
+          "url": ""
+        }
+      ],
+      "expected_labels": ["COULD NOT VERIFY", "COULD NOT VERIFY"],
+      "each_row_contains": ["We could not read this citation."]
     }
   ]
 }

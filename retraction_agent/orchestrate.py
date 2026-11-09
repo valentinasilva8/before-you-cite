@@ -10,6 +10,7 @@ from retraction_agent.citations import (
 )
 from retraction_agent.config import limits
 from retraction_agent.identity import assign_record_status, compare_identity
+from retraction_agent.extract import apply_llm_fallback, fallback_complete
 from retraction_agent.llm import complete as default_complete
 from retraction_agent.llm import run_agent
 from retraction_agent.normalize import normalize_doi, normalize_title
@@ -147,6 +148,8 @@ def _lead(session: dict, message: str, complete_fn) -> tuple[dict, list[dict]]:
     if model_plan is None and text and not _has_work(message, session):
         model_plan = {"action": "ask", "ask": text.strip()}
     plan = finalize_plan(message, model_plan, session.get("pending_titles") or [])
+    extractor = fallback_complete if complete_fn is default_complete else complete_fn
+    calls.extend(apply_llm_fallback(message, plan, extractor))
     public = {
         key: plan[key]
         for key in ("action", "ask", "references", "journals", "publishers", "top_publishers", "limit", "planned_by")
@@ -571,6 +574,8 @@ def _record_statuses(references: list[dict], calls: list[dict]) -> list[dict]:
             args["title"] = ref["title"]
         else:
             args["raw"] = ref.get("raw") or ""
+        if ref.get("parsed_by"):
+            args["parsed_by"] = ref["parsed_by"]
         made.append(
             {
                 "agent": _agent_for(calls, ref),

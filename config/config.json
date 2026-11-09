@@ -11,6 +11,11 @@
   },
   "snapshot_path": "data/retraction_watch.csv.gz",
   "manifest_path": "data/manifest.json",
+  "llm_fallback": {
+    "enabled": true,
+    "max_lines": 25,
+    "model": "vertex_ai/gemini-3.5-flash-lite"
+  },
   "limits": {
     "max_research_rounds": 2,
     "max_tool_rounds": 8,

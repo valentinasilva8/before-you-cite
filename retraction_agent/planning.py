@@ -141,8 +141,8 @@ def parse_references(message: str) -> list[dict]:
 
 
 def _citation_line(line: str) -> list[dict]:
-    numbered = bool(re.match(r"^\d+[\).\]]\s*", line))
-    cleaned = re.sub(r"^\d+[\).\]]\s*", "", line).strip(" -*")
+    numbered = bool(re.match(r"^\d+[\).\]]\s+", line))
+    cleaned = re.sub(r"^\d+[\).\]]\s+", "", line).strip(" -*")
     if not cleaned:
         return []
     dois = _dois_in(cleaned)
