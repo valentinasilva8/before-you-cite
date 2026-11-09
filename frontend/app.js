@@ -51,6 +51,7 @@ function renderAnswer(text, calls) {
     return node;
   }
   const cites = citationsFrom(calls);
+  const readings = readingsFrom(calls);
   const records = parsed.rows.map((row, index) => ({
     n: row[0],
     citation: cites[index] || "",
@@ -58,6 +59,7 @@ function renderAnswer(text, calls) {
     found: cleanCell(row[2]),
     action: cleanCell(row[3]),
     order: index,
+    reading: readings && readings[index] ? readings[index] : null,
   }));
   const view = { records, original: false };
   const banner = document.createElement("p");
@@ -203,7 +205,7 @@ function renderRecords(records) {
   for (const record of records) {
     const row = document.createElement("tr");
     row.appendChild(textCell(record.n));
-    row.appendChild(citationCell(record.citation));
+    row.appendChild(citationCell(record.citation, record.reading));
     const verdict = document.createElement("td");
     const chip = document.createElement("span");
     chip.className = `chip ${chipClass(record.verdict)}`;
@@ -223,15 +225,84 @@ function textCell(value) {
   return cell;
 }
 
-function citationCell(value) {
+function citationCell(value, reading) {
   const cell = document.createElement("td");
   cell.className = "citation";
+  const title = document.createElement("div");
+  title.className = "citation-text";
   const full = value || "";
-  cell.textContent = full;
+  title.textContent = full;
   if (full) {
-    cell.title = full;
+    title.title = full;
+  }
+  cell.appendChild(title);
+  const line = readAsLine(reading);
+  if (line) {
+    cell.appendChild(line);
   }
   return cell;
+}
+
+function readingsFrom(calls) {
+  try {
+    if (!Array.isArray(calls)) return null;
+    const call = calls.find((item) => item && item.name === "parsed_references");
+    if (!call || typeof call.result !== "string") return null;
+    const data = JSON.parse(call.result);
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.items)) return data.items;
+  } catch (error) {
+    return null;
+  }
+  return null;
+}
+
+function readAsLine(reading) {
+  if (!reading || typeof reading !== "object") return null;
+  const line = document.createElement("div");
+  line.className = "read-as";
+  const label = document.createElement("span");
+  label.className = "read-label";
+  label.textContent = "Read as";
+  line.appendChild(label);
+  line.appendChild(readField("Title", reading.title));
+  line.appendChild(readField("Authors", reading.authors));
+  line.appendChild(readField("Year", reading.year));
+  line.appendChild(readField("DOI", reading.doi));
+  if (reading.parsed_by) {
+    const badge = document.createElement("span");
+    badge.className = "read-badge";
+    badge.textContent = String(reading.parsed_by);
+    line.appendChild(badge);
+  }
+  if (Array.isArray(reading.notes)) {
+    for (const note of reading.notes) {
+      if (!note) continue;
+      const span = document.createElement("span");
+      span.className = "read-note";
+      span.textContent = String(note);
+      line.appendChild(span);
+    }
+  }
+  return line;
+}
+
+function readField(name, value) {
+  const field = document.createElement("span");
+  field.className = "read-field";
+  const key = document.createElement("span");
+  key.className = "read-key";
+  key.textContent = name + " ";
+  const shown = document.createElement("span");
+  const text = value == null ? "" : String(value).trim();
+  if (text) {
+    shown.textContent = text;
+  } else {
+    shown.className = "read-missing";
+    shown.textContent = "not found in your paste";
+  }
+  field.append(key, shown);
+  return field;
 }
 
 function markdownTable(records) {
