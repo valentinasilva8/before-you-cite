@@ -95,8 +95,6 @@ Full nature counts, reason tokens, and batch dates are in `data/expected_samples
 
 ### Sample 4. Eight citations, registration before retraction
 
-Paste the full citation, not the link alone.
-
 ```
 Audit these citations. Use the full citation: title, authors, and link.
 

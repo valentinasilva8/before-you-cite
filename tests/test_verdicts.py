@@ -277,4 +277,4 @@ def test_frontend_renders_a_table_and_hides_the_tool_log():
         assert name in js
         assert name in css
     assert "green" not in css.casefold()
-    assert "not a clean bill of health" in html
+    assert "not proof the paper is sound" in html
