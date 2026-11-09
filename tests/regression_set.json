@@ -1,0 +1,165 @@
+{
+  "snapshot": "fb5f174f",
+  "cases": [
+    {
+      "id": "record-32321",
+      "input": "https://doi.org/10.1073/pnas.1209746109",
+      "expected_label": "DO NOT CITE",
+      "row_contains": ["Retraction Watch #32321."]
+    },
+    {
+      "id": "invented-doi",
+      "input": "https://doi.org/10.9999/not-a-real-work",
+      "expected_label": "NOT FOUND",
+      "row_contains": ["No registration agency has this DOI."]
+    },
+    {
+      "id": "wrong-link-alphafold",
+      "input": "Atta, Ayman M., et al. Magnetic Ionic Liquid Nanocatalyst to Improve Mechanical and Thermal Properties of Epoxy Nanocomposites. Nanomaterials 2020. https://doi.org/10.1038/s41586-021-03819-2",
+      "expected_label": "WRONG LINK",
+      "row_contains": ["Magnetic Ionic Liquid", "Highly accurate protein structure prediction with AlphaFold"]
+    },
+    {
+      "id": "correction-only",
+      "input": "https://doi.org/10.1155/2016/1732163",
+      "expected_label": "CHECK FIRST",
+      "row_contains": ["A correction is on record"],
+      "row_excludes": ["expression of concern"]
+    },
+    {
+      "id": "expression-of-concern-only",
+      "input": "https://doi.org/10.1042/cs20150451",
+      "expected_label": "CHECK FIRST",
+      "row_contains": ["An expression of concern is on record"],
+      "row_excludes": ["A correction is on record"]
+    },
+    {
+      "id": "arxiv-no-retraction-source",
+      "input": "Vaswani, Ashish, et al. Attention Is All You Need. 2017. https://doi.org/10.48550/arXiv.1706.03762",
+      "expected_label": "FOUND CAN'T CHECK RETRACTIONS",
+      "row_contains": ["no retraction or correction source"]
+    },
+    {
+      "id": "apa-shu-32321",
+      "input": "Shu, L. L., Mazar, N., Gino, F., Ariely, D., & Bazerman, M. H. (2012). Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end. Proceedings of the National Academy of Sciences, 109(38), 15197-15200.",
+      "expected_label": "DO NOT CITE",
+      "row_contains": ["Retraction Watch #32321."]
+    },
+    {
+      "id": "chatter-plus-pnas-url",
+      "input": "Can you check this link ChatGPT gave me? https://www.pnas.org/doi/10.1073/pnas.1209746109",
+      "expected_label": "DO NOT CITE",
+      "row_contains": ["Retraction Watch #32321."],
+      "row_excludes": ["ChatGPT"]
+    },
+    {
+      "id": "nature-article-url",
+      "input": "https://www.nature.com/articles/s41586-021-03819-2",
+      "expected_label": "NO NOTICE FOUND",
+      "row_contains": ["No notice is on record."]
+    },
+    {
+      "id": "llm-mla-shu",
+      "input": "Shu, Lisa L., et al. \"Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end.\" Proceedings of the National Academy of Sciences, vol. 109, no. 38, 2012, pp. 15197-15200.",
+      "llm_items": [
+        {
+          "raw_line_index": 0,
+          "title": "Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end",
+          "authors": "Shu, Lisa L., et al.",
+          "year": "2012",
+          "venue": "Proceedings of the National Academy of Sciences",
+          "doi": "",
+          "url": ""
+        }
+      ],
+      "expected_label": "DO NOT CITE",
+      "row_contains": ["Retraction Watch #32321."]
+    },
+    {
+      "id": "llm-vancouver-shu",
+      "input": "Shu LL, Mazar N, Gino F, Ariely D, Bazerman MH. Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end. Proc Natl Acad Sci. 2012;109(38):15197-15200.",
+      "llm_items": [
+        {
+          "raw_line_index": 0,
+          "title": "Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end",
+          "authors": "Shu LL, Mazar N, Gino F, Ariely D, Bazerman MH",
+          "year": "2012",
+          "venue": "Proc Natl Acad Sci",
+          "doi": "",
+          "url": ""
+        }
+      ],
+      "expected_label": "DO NOT CITE",
+      "row_contains": ["Retraction Watch #32321."]
+    },
+    {
+      "id": "llm-bibtex-shu",
+      "input": "@article{shu2012, author={Shu, Lisa L.}, title={Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end}, year={2012}, doi={10.1073/pnas.1209746109}}",
+      "llm_items": [
+        {
+          "raw_line_index": 0,
+          "title": "Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end",
+          "authors": "Shu, Lisa L.",
+          "year": "2012",
+          "venue": "",
+          "doi": "10.1073/pnas.1209746109",
+          "url": ""
+        }
+      ],
+      "expected_label": "DO NOT CITE",
+      "row_contains": ["Retraction Watch #32321."]
+    },
+    {
+      "id": "llm-corrected-title-rejected",
+      "input": "Coastal erosion and sediment transport in deltas is the pasted title here.",
+      "llm_items": [
+        {
+          "raw_line_index": 0,
+          "title": "Coastal erosion and sediment transport in river deltas is the pasted title here.",
+          "authors": "",
+          "year": "",
+          "venue": "",
+          "doi": "",
+          "url": ""
+        }
+      ],
+      "expected_label": "COULD NOT VERIFY",
+      "row_contains": ["We could not read this citation."]
+    },
+    {
+      "id": "llm-invented-doi-rejected",
+      "input": "Coastal erosion and sediment transport in deltas is the pasted title here.",
+      "llm_items": [
+        {
+          "raw_line_index": 0,
+          "title": "Coastal erosion and sediment transport in deltas is the pasted title here.",
+          "authors": "",
+          "year": "",
+          "venue": "",
+          "doi": "10.9999/invented-not-in-the-line",
+          "url": ""
+        }
+      ],
+      "expected_label": "COULD NOT VERIFY",
+      "row_contains": ["We could not read this citation."],
+      "row_excludes": ["10.9999/invented-not-in-the-line"]
+    },
+    {
+      "id": "llm-short-count-rejected",
+      "input": "Pasted line one is about coastal erosion and sediment transport.\nPasted line two is about glacier mass balance trends over decades.",
+      "llm_items": [
+        {
+          "raw_line_index": 0,
+          "title": "Pasted line one is about coastal erosion and sediment transport.",
+          "authors": "",
+          "year": "",
+          "venue": "",
+          "doi": "",
+          "url": ""
+        }
+      ],
+      "expected_labels": ["COULD NOT VERIFY", "COULD NOT VERIFY"],
+      "each_row_contains": ["We could not read this citation."]
+    }
+  ]
+}
