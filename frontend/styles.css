@@ -98,10 +98,20 @@ h1 { font-size: 40px; line-height: 1.1; }
   line-height: 1.4;
 }
 
+.info-box:first-child { padding: 10px 14px 8px; }
+.info-box:first-child h2 { margin-bottom: 4px; }
+.checks p {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+.checks p:last-child { margin-bottom: 0; }
+.checks strong { color: var(--ink); }
+
 .legend {
   display: grid;
-  gap: 6px;
-  margin: 10px 0 0;
+  gap: 4px;
+  margin: 8px 0 0;
   padding: 0;
   list-style: none;
 }

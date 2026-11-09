@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Before You Cite</title>
-  <link rel="stylesheet" href="/static/styles.css?v=5">
+  <link rel="stylesheet" href="/static/styles.css?v=6">
 </head>
 <body>
   <header class="top">
@@ -23,7 +23,11 @@
   <section class="info-boxes" aria-label="About this check">
     <article class="info-box">
       <h2>What it checks</h2>
-      <p>Two things: is this a real paper, and was it retracted or corrected? The date at the top right is the saved Retraction Watch file we search. We also look the paper up live in Crossref, the list most journals register papers in.</p>
+      <div class="checks">
+        <p><strong>Does it exist?</strong> Crossref, then doi.org. Record: Crossref or DataCite. Differing title, first author, or year is WRONG LINK. No DOI: exact title match; first author and year must agree. Else COULD NOT VERIFY, not proof it is fake.</p>
+        <p><strong>Was it retracted or corrected?</strong> The dated Retraction Watch file (top right) and Crossref's live updated-by and update-to notices.</p>
+        <p><strong>How we read your paste.</strong> Edit title, authors, year, and DOI before Run check. AI can only copy your paste, and only when the rules cannot read a line. Unreadable is COULD NOT VERIFY, not skipped.</p>
+      </div>
     </article>
     <article class="info-box">
       <h2>Who it is for</h2>
@@ -39,8 +43,8 @@
         <li><span class="chip chip-amber">WRONG KIND OF LINK</span><span>This DOI is the retraction notice, not the original paper.</span></li>
         <li><span class="chip chip-amber">NOT FOUND</span><span>No registration agency has this DOI.</span></li>
         <li><span class="chip chip-amber">COULD NOT VERIFY</span><span>The citation could not be read, or the live check did not return.</span></li>
-        <li><span class="chip chip-blue">NO NOTICE FOUND</span><span>No notice is on record. That is not proof the paper is sound.</span></li>
-        <li><span class="chip chip-grey">FOUND CAN'T CHECK RETRACTIONS</span><span>The citation was found, and there is no retraction or correction source for this record.</span></li>
+        <li><span class="chip chip-blue">NO NOTICE FOUND</span><span>A registry has a record for the paper and we found no retraction or correction. That is not proof the paper is sound.</span></li>
+        <li><span class="chip chip-grey">FOUND CAN'T CHECK RETRACTIONS</span><span>A registry has a record for the paper, but that registry gives us no retraction data, so we could not check it there. Look it up on the publisher's page yourself.</span></li>
         <li><span class="chip chip-grey">NOT A PAPER</span><span>This item is not a paper citation.</span></li>
       </ul>
       <p class="legend-try">Try the last example to see a source that comes back clean.</p>
@@ -78,6 +82,6 @@
   <footer>
     <p>Retraction Watch database via Crossref, CC0. Crossref REST calls use a polite mailto and do not store abstracts. Publisher strings are quoted as the file and as Crossref wrote them.</p>
   </footer>
-  <script src="/static/app.js?v=5"></script>
+  <script src="/static/app.js?v=6"></script>
 </body>
 </html>

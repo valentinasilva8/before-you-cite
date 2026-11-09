@@ -37,7 +37,7 @@
       "id": "arxiv-no-retraction-source",
       "input": "Vaswani, Ashish, et al. Attention Is All You Need. 2017. https://doi.org/10.48550/arXiv.1706.03762",
       "expected_label": "FOUND CAN'T CHECK RETRACTIONS",
-      "row_contains": ["no retraction or correction source"]
+      "row_contains": ["DataCite has a record for this paper", "not Crossref"]
     },
     {
       "id": "apa-shu-32321",
@@ -56,7 +56,7 @@
       "id": "nature-article-url",
       "input": "https://www.nature.com/articles/s41586-021-03819-2",
       "expected_label": "NO NOTICE FOUND",
-      "row_contains": ["No notice is on record."]
+      "row_contains": ["A registry has a record", "You pasted only the DOI, so we could not compare the title."]
     },
     {
       "id": "llm-mla-shu",

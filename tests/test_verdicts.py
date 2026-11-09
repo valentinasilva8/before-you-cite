@@ -78,7 +78,9 @@ def test_sample_four_verdicts_follow_the_readme_order():
     assert "2026-02-25" in response
     assert "Highly accurate protein structure prediction with AlphaFold" in response
     assert "Jumper" in response and "2021" in response
-    assert "integrity was not checked" in response
+    assert "not Crossref" in response
+    assert "withdrawal or retraction notice" in response
+    assert "This paper exists" not in response
     assert "mistyped or invented" in response
     assert "It is not proof." in response
     assert "The link is the retraction notice." in response
@@ -297,6 +299,106 @@ def test_frontend_renders_a_table_and_hides_the_tool_log():
     assert ".prepend(" in js
     for label in ("AI link", "AI citation", "AI Nature link", "AI source that checks out"):
         assert label in js
+
+
+def test_what_it_checks_keeps_only_the_verified_lines():
+    html = (ROOT / "frontend" / "index.html").read_text()
+    box = html.split("<h2>What it checks</h2>", 1)[1].split("</article>", 1)[0]
+    for line in ("Does it exist?", "Was it retracted or corrected?", "How we read your paste"):
+        assert line in box
+    for phrase in (
+        "doi.org",
+        "DataCite",
+        "exact title match",
+        "first author and year must agree",
+        "WRONG LINK",
+        "Retraction Watch",
+        "update-to",
+        "before Run check",
+        "can only copy your paste",
+        "COULD NOT VERIFY, not skipped",
+    ):
+        assert phrase in box
+    assert "This paper exists" not in html
+    assert "A registry has a record" in html
+
+
+def test_a_clear_result_claims_a_match_only_when_it_was_tested():
+    source = (ROOT / "retraction_agent" / "verdicts.py").read_text()
+    assert "A registry has a record" in source
+    assert "This paper exists" not in source
+    doi_only = build_verdicts(
+        [{"doi": "10.1000/only-doi"}],
+        [_status("10.1000/only-doi", {"status": "registered_crossref", "comparison": {"verdict": "skipped", "fields": []}})],
+        "fb5f174f",
+    )[0]
+    assert doi_only["label"] == "NO NOTICE FOUND"
+    assert doi_only["found"].startswith("A registry has a record")
+    assert "You pasted only the DOI, so we could not compare the title." in doi_only["found"]
+    assert "title, authors and year" not in doi_only["found"]
+    matched = build_verdicts(
+        [{"doi": "10.1000/full", "title": "Deep learning", "author": "LeCun, Y.", "year": "2015"}],
+        [
+            _status(
+                "10.1000/full",
+                {
+                    "status": "registered_crossref",
+                    "pasted": {"title": "Deep learning", "author": "LeCun, Y.", "year": "2015"},
+                    "comparison": {
+                        "verdict": "match",
+                        "fields": [
+                            {"field": "title", "agrees": True},
+                            {"field": "first_author", "agrees": True},
+                            {"field": "year", "agrees": True},
+                        ],
+                    },
+                },
+            )
+        ],
+        "fb5f174f",
+    )[0]
+    assert "The title, authors and year you pasted match the record." in matched["found"]
+    title_only = build_verdicts(
+        [{"title": "Deep learning"}],
+        [
+            {
+                "name": "record_status",
+                "args": {"title": "Deep learning"},
+                "result": json.dumps(
+                    {
+                        "status": "registered_crossref",
+                        "pasted": {"title": "Deep learning"},
+                        "comparison": {"verdict": "match", "fields": [{"field": "title", "agrees": True}]},
+                    }
+                ),
+            }
+        ],
+        "fb5f174f",
+    )[0]
+    assert title_only["label"] == "NO NOTICE FOUND"
+    assert "title, authors and year" not in title_only["found"]
+    other = build_verdicts(
+        [{"doi": "10.48550/arxiv.1706.03762"}],
+        [
+            _status(
+                "10.48550/arxiv.1706.03762",
+                {
+                    "status": "exists_no_integrity_source",
+                    "agency": {"agency_label": "DataCite", "registration": "other"},
+                },
+            )
+        ],
+        "fb5f174f",
+    )[0]
+    assert other["label"] == "FOUND CAN'T CHECK RETRACTIONS"
+    assert other["found"].startswith("DataCite has a record for this paper")
+    assert "not Crossref" in other["found"]
+    assert "This paper exists" not in other["found"]
+    assert other["action"].startswith("Look it up on the arXiv or publisher page")
+
+
+def _status(doi: str, payload: dict) -> dict:
+    return {"name": "record_status", "args": {"doi": doi}, "result": json.dumps(payload)}
 
 
 def test_legend_covers_every_verdict_label():
