@@ -10,6 +10,14 @@ _DOI = re.compile(
     re.IGNORECASE,
 )
 _QUOTED = re.compile(r'"([^"]{2,200})"')
+_NATURE_ARTICLE = re.compile(r"nature\.com/articles/([^/?#\s]+)", re.IGNORECASE)
+_APA_MARKER = re.compile(
+    r"^(?P<author>.+?)\s*\((?P<year>(?:19|20)\d{2})\)\.\s+(?P<rest>.+)$"
+)
+_REQUEST_START = re.compile(
+    r"^(can|could|would|please|do|does|did|is|are|was|were|check|has|have)\b",
+    re.IGNORECASE,
+)
 _YES = re.compile(
     r"^\s*(yes|yep|yeah|confirm|use (the )?first|use (the )?second|that one|the first|the second)\b",
     re.IGNORECASE,
@@ -133,43 +141,49 @@ def parse_references(message: str) -> list[dict]:
 
 
 def _citation_line(line: str) -> list[dict]:
+    numbered = bool(re.match(r"^\d+[\).\]]\s*", line))
     cleaned = re.sub(r"^\d+[\).\]]\s*", "", line).strip(" -*")
     if not cleaned:
         return []
-    dois = []
-    for match in _DOI.finditer(cleaned):
-        norm = normalize_doi(match.group(1))
-        if norm and norm not in dois:
-            dois.append(norm)
-    arxiv = arxiv_doi_from_text(cleaned)
-    if arxiv and arxiv not in dois:
-        dois.append(arxiv)
-    if not dois and (cleaned.endswith("?") or cleaned.casefold().startswith(_SKIP_PREFIXES)):
+    dois = _dois_in(cleaned)
+    apa = _apa_parts(cleaned)
+    quoted = _quoted_title(cleaned)
+    if (
+        not dois
+        and apa is None
+        and not quoted
+        and not _attempted_citation(cleaned, numbered)
+        and (cleaned.endswith("?") or cleaned.casefold().startswith(_SKIP_PREFIXES))
+    ):
         return []
-    if cleaned.endswith("?"):
-        author = None
-        year = None
-        title = None
-    else:
-        author = _author_of(cleaned)
-        year = _year_of(cleaned)
-        title = _title_of(cleaned, author)
+    parsed = apa or _quoted_parts(cleaned, quoted)
+    if parsed is None and not _chatter(cleaned):
+        parsed = _bibliography_parts(cleaned)
+    title = parsed.get("title") if parsed else None
+    author = parsed.get("author") if parsed else None
+    year = parsed.get("year") if parsed else None
+    explicit = apa is not None or bool(quoted)
     urls = re.findall(r"https?://[^\s)>\]]+", cleaned)
-    other_urls = [url for url in urls if "doi.org" not in url.casefold() and "arxiv.org" not in url.casefold()]
+    other_urls = [
+        url
+        for url in urls
+        if "doi.org" not in url.casefold()
+        and "arxiv.org" not in url.casefold()
+        and not _NATURE_ARTICLE.search(url)
+    ]
     if dois:
         refs = []
         for index, doi in enumerate(dois):
             ref = {"doi": doi}
-            if index == 0:
-                if title:
-                    ref["title"] = title
+            if index == 0 and title:
+                ref["title"] = title
                 if author:
                     ref["author"] = author
                 if year:
                     ref["year"] = year
             refs.append(ref)
         return refs
-    if title and len(title) >= 25:
+    if title and (explicit or len(title) >= 25):
         ref = {"title": title}
         if author:
             ref["author"] = author
@@ -178,7 +192,95 @@ def _citation_line(line: str) -> list[dict]:
         return [ref]
     if other_urls:
         return [{"not_checkable": True, "raw": cleaned[:300]}]
+    if _attempted_citation(cleaned, numbered):
+        return [{"raw": cleaned[:300], "unparsed": True}]
     return []
+
+
+def _dois_in(text: str) -> list[str]:
+    dois = []
+    for match in _DOI.finditer(text):
+        norm = normalize_doi(match.group(1))
+        if norm and norm not in dois:
+            dois.append(norm)
+    arxiv = arxiv_doi_from_text(text)
+    if arxiv and arxiv not in dois:
+        dois.append(arxiv)
+    for match in _NATURE_ARTICLE.finditer(text):
+        article = match.group(1).rstrip(".,);]")
+        article = re.sub(r"\.pdf$", "", article, flags=re.IGNORECASE)
+        if not article:
+            continue
+        if article.casefold().startswith("10."):
+            norm = normalize_doi(article)
+        else:
+            norm = normalize_doi(f"10.1038/{article}")
+        if norm and norm not in dois:
+            dois.append(norm)
+    return dois
+
+
+def _apa_parts(line: str) -> dict | None:
+    """Title is the sentence after (YYYY)., not the author list in front of it."""
+    match = _APA_MARKER.match(line)
+    if not match:
+        return None
+    rest = re.sub(r"https?://\S+", " ", match.group("rest"))
+    rest = _DOI.sub(" ", rest)
+    rest = " ".join(rest.split()).strip()
+    title = re.split(r"\.\s+", rest, maxsplit=1)[0].strip(" .;,-")
+    author = " ".join(match.group("author").split()).strip(" ;,-")
+    if len(title) < 2 or not author:
+        return None
+    return {"title": title, "author": author, "year": match.group("year")}
+
+
+def _quoted_title(line: str) -> str | None:
+    if re.search(r"\b(journal|publisher)\b", line, re.IGNORECASE):
+        return None
+    quotes = [" ".join(part.split()).strip() for part in _QUOTED.findall(line)]
+    quotes = [part for part in quotes if len(part) >= 3]
+    if not quotes:
+        return None
+    return max(quotes, key=len)
+
+
+def _quoted_parts(line: str, quoted: str | None) -> dict | None:
+    if not quoted:
+        return None
+    return {"title": quoted, "author": None, "year": _year_of(line)}
+
+
+def _chatter(line: str) -> bool:
+    """A question or a request wrapped around a link is not the citation title."""
+    before_link = re.split(r"https?://", line, maxsplit=1)[0]
+    if "?" in before_link:
+        return True
+    has_link = bool(re.search(r"https?://|10\.\d{4,9}/", line))
+    return bool(has_link and _REQUEST_START.match(line.strip()))
+
+
+def _bibliography_parts(line: str) -> dict | None:
+    author = _author_of(line)
+    if author:
+        title = _title_of(line, author)
+        if not title:
+            return None
+        return {"title": title, "author": author, "year": _year_of(line)}
+    if re.search(r"https?://", line):
+        return None
+    title = _title_of(line, None)
+    if not title:
+        return None
+    return {"title": title, "author": None, "year": _year_of(line)}
+
+
+def _attempted_citation(line: str, numbered: bool) -> bool:
+    if numbered:
+        return True
+    if re.search(r"\((?:19|20)\d{2}\)", line):
+        return True
+    return bool(re.search(r"\bet al\.?", line, re.IGNORECASE))
 
 
 def _author_of(line: str) -> str | None:
@@ -317,7 +419,9 @@ def finalize_plan(message: str, model_plan: dict | None, pending: list[dict]) ->
     if wants_top_publishers(message):
         plan["top_publishers"] = True
     plan["references"] = [
-        ref for ref in plan["references"] if ref.get("doi") or ref.get("title") or ref.get("not_checkable")
+        ref
+        for ref in plan["references"]
+        if ref.get("doi") or ref.get("title") or ref.get("not_checkable") or ref.get("unparsed")
     ]
     has_work = bool(plan["references"] or plan["journals"] or plan["publishers"] or plan["top_publishers"])
     if names_only_a_person(message) and not has_work:
@@ -369,6 +473,9 @@ def _clean_refs(refs: list) -> list[dict]:
         title = " ".join(str(item.get("title") or "").split())
         author = " ".join(str(item.get("author") or "").split())
         year = str(item.get("year") or "").strip()
+        if item.get("unparsed"):
+            cleaned.append({"raw": str(item.get("raw") or "")[:300], "unparsed": True})
+            continue
         if item.get("not_checkable"):
             cleaned.append({"not_checkable": True, "raw": str(item.get("raw") or "")[:300]})
             continue
@@ -391,6 +498,13 @@ def _merge_refs(primary: list[dict], secondary: list[dict]) -> list[dict]:
     titles = set()
     raws = set()
     for ref in list(primary) + list(secondary):
+        if ref.get("unparsed"):
+            raw = ref.get("raw") or ""
+            if raw in raws:
+                continue
+            raws.add(raw)
+            merged.append({"raw": raw, "unparsed": True})
+            continue
         if ref.get("not_checkable"):
             raw = ref.get("raw") or ""
             if raw in raws:
