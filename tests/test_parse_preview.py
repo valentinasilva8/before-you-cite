@@ -87,6 +87,22 @@ def test_parse_reports_the_existing_cap():
     assert result["items"][-1]["doi"] == "10.1000/example-25"
 
 
+def test_a_chatgpt_link_is_read_as_the_doi_not_the_question():
+    from retraction_agent.samples import CHATGPT_LINK, CHATGPT_NATURE
+
+    link = parse_message(CHATGPT_LINK, complete_fn=scripted_complete())
+    assert len(link["items"]) == 1
+    assert link["items"][0]["doi"] == "10.3390/nano10122325"
+    assert link["items"][0]["title"] == ""
+    assert link["items"][0]["raw"] == "https://doi.org/10.3390/nano10122325"
+    assert "ChatGPT" not in link["items"][0]["title"]
+
+    nature = parse_message(CHATGPT_NATURE, complete_fn=scripted_complete())
+    assert nature["items"][0]["doi"] == "10.1038/s41586-021-03819-2"
+    assert nature["items"][0]["raw"] == "https://www.nature.com/articles/s41586-021-03819-2"
+    assert nature["items"][0]["title"] == ""
+
+
 def test_a_question_has_no_preview_items():
     result = parse_message("Has CRISPR been retracted?", complete_fn=scripted_complete())
     assert result == {"items": [], "truncated": False}

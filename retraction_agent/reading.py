@@ -95,6 +95,9 @@ def _line_score(ref: dict, line: str) -> int:
     doi = normalize_doi(ref.get("doi"))
     if doi and doi.casefold() in line.casefold():
         return 4
+    suffix = doi.split("/", 1)[-1].casefold() if doi and "/" in doi else ""
+    if suffix and suffix in line.casefold():
+        return 4
     title = normalize_title(ref.get("title"))
     if title and title in normalize_title(line):
         return 3

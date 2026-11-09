@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Before You Cite</title>
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css?v=4">
 </head>
 <body>
   <header class="top">
@@ -23,15 +23,15 @@
   <section class="info-boxes" aria-label="About this check">
     <article class="info-box">
       <h2>What it checks</h2>
-      <p>Whether a paper you are about to cite really exists, and whether it has been retracted or corrected. We compare it against the Retraction Watch database (a dated copy, shown top right) and look it up live in Crossref, the registry most journals report to.</p>
+      <p>Two things: is this a real paper, and was it retracted or corrected? The date at the top right is the saved Retraction Watch file we search. We also look the paper up live in Crossref, the list most journals register papers in.</p>
     </article>
     <article class="info-box">
       <h2>Who it is for</h2>
-      <p>Students and researchers who got references from ChatGPT or another AI, and want to know which ones are safe to cite.</p>
+      <p>You got a reference from ChatGPT or another chatbot and you want to know if you can cite it.</p>
     </article>
     <article class="info-box">
       <h2>How to use it</h2>
-      <p>Paste your references, up to 25. A title and authors is enough. If you have a DOI (the permanent ID most papers carry, like 10.1038/nature14539) or a link to the paper, include it, because that makes the check more reliable. Each reference gets a verdict. "No notice found" means we found no retraction, which is not proof the paper is sound.</p>
+      <p>Paste what the chatbot wrote, including the link. Up to 25. A DOI is the paper's permanent ID. It looks like 10.1038/nature14539. A normal link works too. "No notice found" means we found no retraction. That is not proof the paper is sound.</p>
     </article>
   </section>
 
@@ -41,15 +41,14 @@
       <p id="pending" class="pending" hidden></p>
       <form id="composer">
         <label for="question" class="sr">Question</label>
-        <textarea id="question" rows="4" placeholder="Paste the full citation: title, authors, and link. Not the link alone."></textarea>
+        <textarea id="question" rows="4" placeholder="Paste what ChatGPT gave you, including the link."></textarea>
         <div class="actions">
           <button type="submit" id="send">Ask</button>
-          <button type="button" id="edit">Edit and recheck</button>
           <button type="button" id="clear">New session</button>
         </div>
       </form>
       <div id="preview" class="preview" hidden>
-        <p class="preview-note">Check this reading, then run the check. A field must be empty, the reading shown, or text from that line.</p>
+        <p class="preview-note">This is how we read your paste. Change a field only if it is wrong, then run the check.</p>
         <div id="preview-list"></div>
         <p id="preview-truncated" class="preview-note" hidden>Only the first 25 references are included.</p>
         <button type="button" id="run" disabled>Run check</button>
@@ -67,6 +66,6 @@
   <footer>
     <p>Retraction Watch database via Crossref, CC0. Crossref REST calls use a polite mailto and do not store abstracts. Publisher strings are quoted as the file and as Crossref wrote them.</p>
   </footer>
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=4"></script>
 </body>
 </html>

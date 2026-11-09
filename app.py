@@ -68,7 +68,7 @@ class ParseResponse(BaseModel):
 
 @app.get("/")
 def index():
-    return FileResponse(FRONTEND / "index.html", headers={"Cache-Control": "no-cache"})
+    return FileResponse(FRONTEND / "index.html", headers={"Cache-Control": "no-store"})
 
 
 @app.get("/health")
@@ -116,7 +116,7 @@ def clear(session_id: str | None = None):
 class NoCacheStaticFiles(StaticFiles):
     async def get_response(self, path: str, scope):
         response = await super().get_response(path, scope)
-        response.headers["Cache-Control"] = "no-cache"
+        response.headers["Cache-Control"] = "no-store"
         return response
 
 

@@ -13,11 +13,9 @@ let previewState = [];
 let healthMeta = { short: "", rows: null };
 
 const labels = {
-  sample1_turn1: "Sample 1, turn 1",
-  sample1_turn2: "Sample 1, turn 2",
-  sample2: "Sample 2",
-  sample3: "Sample 3",
-  sample4: "Sample 4",
+  chatgpt_link: "ChatGPT link",
+  chatgpt_citation: "ChatGPT citation",
+  chatgpt_nature: "ChatGPT nature link",
 };
 
 const SEVERITY = {
@@ -422,7 +420,7 @@ async function loadMeta() {
       button.textContent = labels[key] || key;
       button.addEventListener("click", () => {
         question.value = prompt;
-        question.focus();
+        form.requestSubmit();
       });
       samples.appendChild(button);
     }
@@ -495,11 +493,6 @@ if (run) {
     sendChat(built.message);
   });
 }
-
-document.querySelector("#edit").addEventListener("click", () => {
-  question.focus();
-  question.scrollIntoView({ block: "center" });
-});
 
 document.querySelector("#clear").addEventListener("click", async () => {
   if (sessionId) {
@@ -661,6 +654,7 @@ function renderPreview(items, truncated) {
   previewTruncated.hidden = !truncated;
   preview.hidden = false;
   run.disabled = false;
+  preview.scrollIntoView({ block: "nearest" });
 }
 
 async function requestParse(message) {
