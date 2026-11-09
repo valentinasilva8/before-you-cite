@@ -27,7 +27,7 @@ h1, h2, p { margin: 0; }
 
 h1, h2 { font-family: var(--serif); font-weight: 600; }
 
-.top, .brief, main, footer {
+.top, main, footer {
   width: min(1100px, calc(100% - 32px));
   margin-left: auto;
   margin-right: auto;
@@ -70,27 +70,40 @@ h1 { font-size: 40px; line-height: 1.1; }
 
 .label { text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
 
-.brief {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  padding-bottom: 8px;
+.how {
+  width: min(1100px, calc(100% - 32px));
+  margin: 0 auto 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 16px;
 }
 
-.brief article, .chat, .tools {
+.how summary {
+  cursor: pointer;
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.how-body {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chat, .tools {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 16px;
 }
 
-.brief h2 { font-size: 20px; margin-bottom: 6px; }
-
-.brief p, .aside-note, footer p { color: var(--muted); }
+.how-body p, .aside-note, footer p { color: var(--muted); }
 
 main {
   display: grid;
-  grid-template-columns: 1.4fr 0.8fr;
+  grid-template-columns: 1fr;
   gap: 12px;
   padding: 12px 0 24px;
 }
@@ -127,10 +140,26 @@ main {
 
 .summary { font-weight: 650; margin: 0 0 10px; }
 
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.table-host { width: 100%; overflow-x: auto; }
+
+.snapshot-foot {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
 table.verdicts {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  table-layout: fixed;
 }
 
 table.verdicts th,
@@ -139,6 +168,14 @@ table.verdicts td {
   text-align: left;
   vertical-align: top;
   padding: 8px 6px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+table.verdicts td.citation {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chip {
@@ -216,7 +253,7 @@ footer { padding-bottom: 28px; }
 }
 
 @media (max-width: 800px) {
-  .brief, main { grid-template-columns: 1fr; }
+  main { grid-template-columns: 1fr; }
   .top { flex-direction: column; align-items: start; }
   h1 { font-size: 32px; }
 }

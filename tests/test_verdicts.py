@@ -69,7 +69,10 @@ def test_sample_four_verdicts_follow_the_readme_order():
     )
     assert "| # | Verdict | What we found | What to do |" in response
     assert FOOTER in response
-    assert "Retraction Watch #70104, snapshot fb5f174f" in response
+    assert "Retraction Watch #70104." in response
+    table_lines = [line for line in response.splitlines() if line.startswith("|")]
+    assert table_lines
+    assert all("snapshot" not in line.casefold() for line in table_lines)
     assert "concerns about data" in response
     assert "2026-02-25" in response
     assert "Highly accurate protein structure prediction with AlphaFold" in response
@@ -81,7 +84,7 @@ def test_sample_four_verdicts_follow_the_readme_order():
     assert "10.3390/nano10122325" in response
     assert "An expression of concern was recorded earlier, on 2024-09-27." in response
     assert "2026-07-24" in response
-    assert "Retraction Watch #73988, snapshot fb5f174f" in response
+    assert "Retraction Watch #73988." in response
     assert "Confirm which work" in response
 
 
@@ -100,7 +103,9 @@ def test_sample_two_is_one_row_in_the_same_format():
     )
     assert "not a guarantee of quality." in response
     assert FOOTER in response
-    assert "snapshot fb5f174f" in response
+    assert "Snapshot fb5f174f" in response
+    data = [line for line in response.splitlines() if "NO NOTICE FOUND" in line]
+    assert data and "snapshot" not in data[0].casefold()
 
 
 def test_final_responses_omit_instructions_and_tool_names():
@@ -244,7 +249,8 @@ def test_a_crossref_retraction_update_is_a_verdict_without_an_extract_row():
     ]
     verdict = build_verdicts([ref], calls, "fb5f174f")[0]
     assert verdict["label"] == "DO NOT CITE"
-    assert "Retraction Watch #42, snapshot fb5f174f" in verdict["found"]
+    assert "Retraction Watch #42." in verdict["found"]
+    assert "snapshot" not in verdict["found"]
 
     calls[2]["result"] = json.dumps(
         {"ok": True, "updated_by": [{"type": "correction", "date": "2024-03-01"}], "update_to": []}

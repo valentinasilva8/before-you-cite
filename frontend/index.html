@@ -20,34 +20,29 @@
     </div>
   </header>
 
-  <section class="brief" aria-label="What this is">
-    <article>
-      <h2>What it checks</h2>
-      <p>Notices in one dated Retraction Watch extract, then a live Crossref check when you name a DOI or a title. The extract is loaded when the process starts. A request does not download it.</p>
-    </article>
-    <article>
-      <h2>Who it is for</h2>
-      <p>Someone about to cite a paper, a journal, or a publisher, and the course grader who can open how the agents worked.</p>
-    </article>
-    <article>
-      <h2>How to use it</h2>
-      <p>Paste the full citation as the model wrote it: title, authors, and link, not the link alone. A bibliography can hold up to 25 references. A journal or publisher name has to appear as it does in the extract. A topic alone gets a question back. A title with no DOI is compared with Crossref. At most three candidates are shown, and only when half their words are in the pasted title. No record is not a clean bill of health. It is a limit of this file.</p>
-    </article>
-  </section>
+  <details class="how">
+    <summary>How it works</summary>
+    <div class="how-body">
+      <p><strong>What it checks.</strong> Notices in one dated Retraction Watch extract, then a live Crossref check when you name a DOI or a title. The extract is loaded when the process starts. A request does not download it.</p>
+      <p><strong>Who it is for.</strong> Someone about to cite a paper, a journal, or a publisher, and the course grader who can open how the agents worked.</p>
+      <p><strong>How to use it.</strong> Paste the full citation as the model wrote it: title, authors, and link, not the link alone. A bibliography can hold up to 25 references. A journal or publisher name has to appear as it does in the extract. A topic alone gets a question back. A title with no DOI is compared with Crossref. At most three candidates are shown, and only when half their words are in the pasted title. No record is not a clean bill of health. It is a limit of this file.</p>
+    </div>
+  </details>
 
   <main>
     <section class="chat" aria-label="Conversation">
       <div id="samples" class="samples"></div>
       <p id="pending" class="pending" hidden></p>
-      <div id="log" class="log" aria-live="polite"></div>
       <form id="composer">
         <label for="question" class="sr">Question</label>
         <textarea id="question" rows="4" placeholder="Paste the full citation: title, authors, and link. Not the link alone."></textarea>
         <div class="actions">
           <button type="submit" id="send">Ask</button>
+          <button type="button" id="edit">Edit and recheck</button>
           <button type="button" id="clear">New session</button>
         </div>
       </form>
+      <div id="log" class="log" aria-live="polite"></div>
     </section>
     <aside class="tools" aria-label="How the agents worked">
       <details class="work">
