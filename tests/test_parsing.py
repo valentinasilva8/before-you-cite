@@ -113,3 +113,8 @@ def test_readme_sample_lines_keep_the_pasted_title():
     assert atta_ref["author"].endswith("et al.")
     short_ref = parse_references(short)[0]
     assert short_ref == {"title": "Modeling Geometry and Semantics of Physical Damages"}
+
+
+def test_a_clicked_title_is_one_reference():
+    refs = parse_references('"Longer title about damages" https://doi.org/10.1000/abc')
+    assert refs == [{"doi": "10.1000/abc", "title": "Longer title about damages"}]

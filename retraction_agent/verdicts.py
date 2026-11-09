@@ -256,14 +256,14 @@ def _decide(ref, code, status, rows, work, calls, snapshot_short) -> tuple[str, 
         query = status.get("query") or ref.get("title") or ""
         close = select_candidates(query, _candidates(query, calls))
         action = (
-            "The pasted title is not an exact match for one work."
+            "Confirm which title you meant. The choices are listed under the table."
             if close
             else "Paste the full title, authors and DOI."
         )
         return (
             "COULD NOT VERIFY",
             "No matching record found",
-            "We could not find a registry record that matches this citation. We search Crossref by title and accept only an exact title match, and anything else you pasted must agree.",
+            "This title did not match one paper.",
             action,
         )
     if code in {"exists_no_integrity_source", "doi_other_agency"}:
@@ -316,9 +316,10 @@ def _registry_has(status: dict) -> str:
 def _other_registry_found(status: dict) -> str:
     named = _registry_has(status)
     lead = named[:1].upper() + named[1:]
+    subject = lead[: -len(" has")] if lead.endswith(" has") else lead
     return (
-        f"{lead} a record for this paper, so it exists. "
-        "That registry gives us no retraction or correction data, so we could not check for either."
+        f"{subject} has this paper. The Retraction Watch file does not cover this publisher, "
+        "so a retraction or correction could not be checked."
     )
 
 

@@ -1,4 +1,4 @@
-from retraction_agent.citations import confirmation_question, corpus_from, enforce_citations, strip_units
+from retraction_agent.citations import CONFIRM_NOTE, confirmation_question, corpus_from, enforce_citations, strip_units
 
 SNAPSHOT = "fb5f174f8476824deaf340693f9a819ce5e29ded"
 RESULTS = [
@@ -47,5 +47,7 @@ def test_unconfirmed_candidate_status_is_removed():
 
 def test_confirmation_question_lists_candidates():
     text = confirmation_question([{"query": "Short", "candidates": [{"title": "Longer", "doi": "10.1000/abc"}]}])
-    assert "not citing" in text
-    assert "10.1000/abc" in text
+    assert "Query: Short" in text
+    assert "1. Longer" in text
+    assert "DOI: 10.1000/abc" in text
+    assert CONFIRM_NOTE.startswith("Confirm which title you meant.")

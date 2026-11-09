@@ -4,6 +4,7 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 
 from retraction_agent.citations import (
+    CONFIRM_NOTE,
     confirmation_question,
     enforce_citations,
     grounded_fallback,
@@ -113,8 +114,11 @@ def handle_turn(session: dict, message: str, *, complete_fn=None, catalog=None, 
                 response = prose_notes(grounded_fallback(tool_calls, catalog.commit_short), limit=None)
         if pending:
             question = confirmation_question(pending)
-            if question.casefold() not in response.casefold():
-                response = (response + "\n\n" + question).strip()
+            head = response.split("| # |", 1)[0]
+            if CONFIRM_NOTE.casefold() not in head.casefold():
+                response = f"{CONFIRM_NOTE}\n\n{response}".strip()
+            if question and question.casefold() not in response.casefold():
+                response = f"{response}\n\n{question}".strip()
         session["messages"].append({"role": "assistant", "content": response})
         session["pack_summary"] = _summary(tool_calls, pending)
         return {"response": response, "tool_calls": tool_calls}

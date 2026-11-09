@@ -72,6 +72,13 @@ function renderAnswer(text, calls) {
     reading: readings && readings[index] ? readings[index] : null,
   }));
   const view = { records, original: false };
+  const noteLine = confirmNote(parsed.before);
+  if (noteLine) {
+    const note = document.createElement("p");
+    note.className = "confirm-note";
+    note.textContent = noteLine;
+    node.appendChild(note);
+  }
   const banner = document.createElement("p");
   banner.className = "summary";
   const actions = document.createElement("div");
@@ -92,11 +99,14 @@ function renderAnswer(text, calls) {
   snapshot.className = "snapshot-foot";
   snapshot.textContent = snapshotLine();
   node.append(banner, actions, tableHost, snapshot);
-  const after = notesAfterTable(parsed.after);
-  if (after) {
+  const after = splitAfter(parsed.after);
+  if (after.choices.length) {
+    node.appendChild(renderChoices(after.choices));
+  }
+  if (after.notes) {
     const rest = document.createElement("div");
     rest.className = "after-table";
-    rest.textContent = after;
+    rest.textContent = after.notes;
     node.appendChild(rest);
   }
 
@@ -148,7 +158,89 @@ function parseVerdictTable(text) {
     }
     rows.push(cells);
   }
-  return { rows, after: lines.slice(end).join("\n").trim() };
+  return {
+    rows,
+    before: lines.slice(0, start).join("\n").trim(),
+    after: lines.slice(end).join("\n").trim(),
+  };
+}
+
+function confirmNote(before) {
+  return String(before || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line.startsWith("Confirm which title you meant.")) || "";
+}
+
+function splitAfter(text) {
+  const lines = String(text || "").split("\n");
+  const start = lines.findIndex((line) => line.trim().startsWith("Query:"));
+  if (start < 0) {
+    return { notes: notesAfterTable(text), choices: [] };
+  }
+  const choices = [];
+  let current = null;
+  for (const line of lines.slice(start)) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("Query:")) {
+      current = { query: trimmed.slice("Query:".length).trim(), options: [] };
+      choices.push(current);
+      continue;
+    }
+    const numbered = trimmed.match(/^(\d+)\.\s+(.+)$/);
+    if (numbered && current) {
+      current.options.push({ title: numbered[2].trim(), doi: "" });
+      continue;
+    }
+    const doi = trimmed.match(/^DOI:\s*(.+)$/i);
+    if (doi && current && current.options.length) {
+      current.options[current.options.length - 1].doi = doi[1].trim();
+    }
+  }
+  return { notes: notesAfterTable(lines.slice(0, start).join("\n")), choices };
+}
+
+function renderChoices(groups) {
+  const wrap = document.createElement("div");
+  wrap.className = "title-choices";
+  const heading = document.createElement("p");
+  heading.className = "choices-label";
+  heading.textContent = "Click a title to put it in the box above.";
+  wrap.appendChild(heading);
+  for (const group of groups) {
+    if (group.query) {
+      const query = document.createElement("p");
+      query.className = "choice-query";
+      query.textContent = group.query;
+      wrap.appendChild(query);
+    }
+    for (const option of group.options) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "title-choice";
+      button.textContent = option.title;
+      button.addEventListener("click", () => useTitle(option));
+      wrap.appendChild(button);
+      if (option.doi) {
+        const id = document.createElement("span");
+        id.className = "choice-doi";
+        id.textContent = option.doi;
+        wrap.appendChild(id);
+      }
+    }
+  }
+  return wrap;
+}
+
+function useTitle(option) {
+  const title = String(option.title || "").trim();
+  const doi = String(option.doi || "").replace(/^https?:\/\/(?:dx\.)?doi\.org\//i, "").trim();
+  const link = doi ? `https://doi.org/${doi}` : "";
+  const quoted = title ? `"${title}"` : "";
+  question.value = [quoted, link].filter(Boolean).join(" ");
+  question.dispatchEvent(new Event("input", { bubbles: true }));
+  if (form) form.scrollIntoView({ block: "center" });
+  if (question) question.focus();
 }
 
 function citationsFrom(calls) {
