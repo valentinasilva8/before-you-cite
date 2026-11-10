@@ -306,8 +306,11 @@ def test_frontend_renders_a_table_and_hides_the_tool_log():
     assert 'class="how"' not in html
     assert "<summary>How it works</summary>" not in html
     assert 'class="info-boxes"' in html
-    for title in ("What it checks", "Who it is for", "How to use it"):
-        assert title in html
+    titles = re.findall(r"<h2>([^<]+)</h2>", html.split('class="info-boxes"', 1)[1].split("</section>", 1)[0])
+    assert titles == ["What it checks", "What the results mean"]
+    assert "Who it is for" not in html
+    assert "How to use it</h2>" not in html
+    assert ".info-box:nth-child(3)" not in css
     assert "Read as" in js
     assert "not found in your paste" in js
     assert "parsed_references" in js
@@ -315,9 +318,10 @@ def test_frontend_renders_a_table_and_hides_the_tool_log():
     assert "escapeHtml" in js
     assert "textContent" in js
     assert "innerHTML" not in js.split("function renderAnswer")[1].split("function showTools")[0]
-    for name in ("chip-red", "chip-amber", "chip-grey", "chip-blue"):
+    for name in ("chip-red", "chip-orange", "chip-amber", "chip-grey", "chip-blue"):
         assert name in js
         assert name in css
+        assert name in html
     assert "green" not in css.casefold()
     assert "not proof the paper is sound" in html
     assert 'id="send"' not in html
@@ -336,21 +340,21 @@ def test_frontend_renders_a_table_and_hides_the_tool_log():
 def test_what_it_checks_keeps_only_the_verified_lines():
     html = (ROOT / "frontend" / "index.html").read_text()
     box = html.split("<h2>What it checks</h2>", 1)[1].split("</article>", 1)[0]
-    for line in ("Does it exist?", "Was it retracted or corrected?", "How we read your paste"):
-        assert line in box
+    assert box.count("<p>") == 3
+    for line in ("Does it exist?", "Retracted or corrected?", "How we read your paste."):
+        assert f"<strong>{line}</strong>" in box
     for phrase in (
-        "doi.org",
-        "DataCite",
-        "exact title match",
-        "first author and year must agree",
-        "does not check out",
-        "Retraction Watch",
-        "update-to",
-        "before Run check",
+        "Crossref and DataCite",
+        "search Crossref by title",
+        "compare the title with the Retraction Watch file",
+        "Crossref's live notices",
+        "before you run the check",
+        "no clear Author (Year). Title. shape",
         "can only copy text you pasted",
         "UNCONFIRMED, not skipped",
     ):
         assert phrase in box
+    assert "exact title match" not in box
     assert "This paper exists" not in html
     assert "A registry has a record" in html
 
@@ -492,6 +496,10 @@ def test_legend_covers_every_headline_and_hides_the_old_ones():
     js = (ROOT / "frontend" / "app.js").read_text()
     for label in ORDER:
         assert label in html
+    legend = html.split('<ul class="legend">', 1)[1].split("</ul>", 1)[0]
+    chips = re.findall(r'<span class="chip (chip-[a-z]+)">([^<]+)</span>', legend)
+    assert [label.replace("&#39;", "'") for _cls, label in chips] == list(ORDER)
+    assert [cls for cls, _label in chips] == ["chip-red", "chip-orange", "chip-amber", "chip-grey", "chip-blue"]
     retired = (
         "WRONG LINK",
         "WRONG KIND OF LINK",

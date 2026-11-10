@@ -33,8 +33,8 @@ def test_static_files_send_no_cache():
     assert page.headers["cache-control"] == "no-store"
     assert "Edit and recheck" not in page.text
     assert 'class="info-boxes"' in page.text
-    assert "styles.css?v=10" in page.text
-    assert "app.js?v=10" in page.text
+    assert "styles.css?v=11" in page.text
+    assert "app.js?v=11" in page.text
     assert 'id="send"' not in page.text
     assert ">Ask<" not in page.text
 
