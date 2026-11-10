@@ -1,6 +1,7 @@
 """Lead, parallel researchers, one gap round, then the writer. Extract lookups finish before Crossref."""
 
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor
 
 from retraction_agent.citations import (
@@ -83,35 +84,41 @@ def handle_turn(session: dict, message: str, *, complete_fn=None, catalog=None, 
         fresh = [call["result"] for call in tool_calls if call["agent"] != "lead"]
         session["corpus"].extend(fresh)
         references = plan.get("references") or []
-        notes_only = bool(references)
-        draft = _writer(message, tool_calls, pending, catalog, complete_fn, notes_only=notes_only)
-
-        def regenerate(previous: str, problems: list[str]) -> str:
-            return _writer(
-                message,
-                tool_calls,
-                pending,
-                catalog,
-                complete_fn,
-                previous,
-                problems,
-                notes_only=notes_only,
-            )
-
-        checked = enforce_citations(draft, session["corpus"], catalog.commit, pending, regenerate)
-        if references:
-            verdicts = build_verdicts(references, tool_calls, catalog.commit_short)
-            response = render_verdict_response(verdicts)
-            notes = prose_notes(checked, limit=3)
-            if notes:
-                response = response + "\n\n" + notes
-            entry = parsed_references_call(message, references, tool_calls)
-            if entry:
-                tool_calls.append(entry)
+        named = bool(plan.get("journals") or plan.get("publishers"))
+        publisher_text = _top_publishers_text(tool_calls) if plan.get("top_publishers") else ""
+        only_top = bool(publisher_text) and not references and not named
+        if only_top:
+            response = publisher_text
         else:
-            response = prose_notes(checked, limit=None)
-            if not response:
-                response = prose_notes(grounded_fallback(tool_calls, catalog.commit_short), limit=None)
+            notes_only = bool(references)
+            draft = _writer(message, tool_calls, pending, catalog, complete_fn, notes_only=notes_only)
+
+            def regenerate(previous: str, problems: list[str]) -> str:
+                return _writer(
+                    message,
+                    tool_calls,
+                    pending,
+                    catalog,
+                    complete_fn,
+                    previous,
+                    problems,
+                    notes_only=notes_only,
+                )
+
+            checked = enforce_citations(draft, session["corpus"], catalog.commit, pending, regenerate)
+            if references:
+                verdicts = build_verdicts(references, tool_calls, catalog.commit_short)
+                response = render_verdict_response(verdicts)
+                notes = prose_notes(checked, limit=3)
+                if notes:
+                    response = response + "\n\n" + notes
+                entry = parsed_references_call(message, references, tool_calls)
+                if entry:
+                    tool_calls.append(entry)
+            else:
+                response = prose_notes(checked, limit=None)
+                if not response:
+                    response = prose_notes(grounded_fallback(tool_calls, catalog.commit_short), limit=None)
         if pending:
             question = confirmation_question(pending)
             head = response.split("| # |", 1)[0]
@@ -119,6 +126,12 @@ def handle_turn(session: dict, message: str, *, complete_fn=None, catalog=None, 
                 response = f"{CONFIRM_NOTE}\n\n{response}".strip()
             if question and question.casefold() not in response.casefold():
                 response = f"{response}\n\n{question}".strip()
+        if publisher_text and not only_top:
+            if "| # | Verdict |" in response:
+                response = f"{response.rstrip()}\n\n{publisher_text}"
+            else:
+                extra = response.strip()
+                response = f"{publisher_text}\n\n{extra}" if extra else publisher_text
         session["messages"].append({"role": "assistant", "content": response})
         session["pack_summary"] = _summary(tool_calls, pending)
         return {"response": response, "tool_calls": tool_calls}
@@ -655,6 +668,87 @@ def _writer(
     if calls:
         raise RuntimeError("writer returned tool calls")
     return text
+
+
+_MDY = re.compile(r"^\d{1,2}/\d{1,2}/\d{4}$")
+_ISO = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
+_PUBLISHER_FOOT = (
+    "A reason token is counted once per row, so token counts add up to more than the row count. "
+    "One paper can be several rows. Publisher names are shown as the file spells them, so Springer "
+    "and Springer - Nature Publishing Group are separate entries."
+)
+
+
+def _top_publishers_text(tool_calls: list[dict]) -> str:
+    for call in reversed(tool_calls):
+        if call.get("name") != "rw_top_publishers":
+            continue
+        try:
+            data = json.loads(call.get("result") or "")
+        except json.JSONDecodeError:
+            continue
+        if isinstance(data, dict) and data.get("publishers"):
+            return _format_top_publishers(data)
+    return ""
+
+
+def _format_top_publishers(data: dict) -> str:
+    """Notice counts from the tool result. A model does not write these numbers."""
+    publishers = [item for item in data.get("publishers") or [] if isinstance(item, dict)]
+    if not publishers:
+        return ""
+    short = str(data.get("snapshot_short") or "").strip()
+    header = (
+        f"Top {len(publishers)} publishers by notice rows in Retraction Watch snapshot {short}. "
+        "These are notice counts, not rates."
+    )
+    blocks = [_publisher_block(item) for item in publishers]
+    return "\n\n".join([header, *blocks, _PUBLISHER_FOOT])
+
+
+def _publisher_block(item: dict) -> str:
+    name = str(item.get("publisher") or "").strip()
+    rows = item.get("notice_rows")
+    shown = f"{rows:,}" if isinstance(rows, int) else str(rows)
+    tokens = ", ".join(bit for bit in (_token_bit(token) for token in item.get("reason_tokens") or []) if bit)
+    dates = ", ".join(bit for bit in (_date_bit(entry) for entry in item.get("batch_dates") or []) if bit)
+    return "\n".join(
+        [
+            f"{name}: {shown} notice rows",
+            f"  Reason tokens (rows): {tokens}",
+            f"  Batch-like dates (rows): {dates}",
+        ]
+    )
+
+
+def _token_bit(item: dict) -> str:
+    if not isinstance(item, dict):
+        return ""
+    token = str(item.get("token") or "").strip()
+    if not token:
+        return ""
+    if "rows" in item and item.get("rows") is not None:
+        return f"{token} ({item['rows']})"
+    return token
+
+
+def _date_bit(item: dict) -> str:
+    if not isinstance(item, dict):
+        return ""
+    raw = str(item.get("date") or "").strip()
+    head = raw.split()[0] if raw else ""
+    if not _MDY.fullmatch(head):
+        match = _ISO.fullmatch(str(item.get("iso") or "").strip())
+        if match:
+            year, month, day = match.groups()
+            head = f"{int(month)}/{int(day)}/{year}"
+        elif not head:
+            head = str(item.get("iso") or "").strip()
+    if not head:
+        return ""
+    if "notice_rows" in item and item.get("notice_rows") is not None:
+        return f"{head} ({item['notice_rows']})"
+    return head
 
 
 def _summary(tool_calls: list[dict], pending: list[dict]) -> str:

@@ -69,6 +69,62 @@ PAGE = """<!DOCTYPE html>
 """
 
 
+def test_plain_answer_keeps_line_breaks(tmp_path):
+    assert CHROME, "google-chrome is required to render a plain answer"
+    (tmp_path / "app.js").write_text((ROOT / "frontend" / "app.js").read_text())
+    (tmp_path / "styles.css").write_text((ROOT / "frontend" / "styles.css").read_text())
+    page = tmp_path / "plain.html"
+    page.write_text(
+        """<!DOCTYPE html>
+<html lang="en">
+<head><link rel="stylesheet" href="styles.css"></head>
+<body>
+  <span id="rows"></span>
+  <div id="samples"></div>
+  <p id="pending" hidden></p>
+  <form id="composer"><textarea id="question"></textarea><button id="send" type="submit">Ask</button></form>
+  <button id="edit" type="button">Edit</button>
+  <button id="clear" type="button">Clear</button>
+  <div id="preview" hidden><div id="preview-list"></div><p id="preview-truncated" hidden></p><button id="run" type="button"></button></div>
+  <div id="log"></div>
+  <div id="tools"></div>
+  <script src="app.js"></script>
+  <script>
+    const text = "Top 8 publishers\\n\\nHindawi: 11,524 notice rows\\n  Reason tokens (rows): A (1)\\n  Batch-like dates (rows): 1/24/2024 (2)";
+    const node = renderAnswer(text, [], "");
+    document.body.appendChild(node);
+    const style = getComputedStyle(node);
+    const kept = node.textContent === text && !node.querySelector("table");
+    document.body.setAttribute("data-space", style.whiteSpace);
+    document.body.setAttribute("data-kept", kept ? "yes" : "no");
+  </script>
+</body>
+</html>
+"""
+    )
+    completed = subprocess.run(
+        [
+            CHROME,
+            "--headless=new",
+            "--no-sandbox",
+            "--disable-gpu",
+            "--disable-dev-shm-usage",
+            "--no-first-run",
+            f"--user-data-dir={tmp_path / 'chrome-plain'}",
+            "--dump-dom",
+            page.as_uri(),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert completed.returncode == 0, completed.stderr
+    dom = completed.stdout
+    assert 'data-kept="yes"' in dom
+    assert 'data-space="pre-wrap"' in dom or 'data-space="pre-line"' in dom
+
+
 def test_read_as_line_renders_and_escapes_html(tmp_path):
     assert CHROME, "google-chrome is required to render the Read as line"
     (tmp_path / "app.js").write_text((ROOT / "frontend" / "app.js").read_text())

@@ -136,6 +136,68 @@ def test_bibtex_entry_keeps_only_a_doi_that_was_pasted():
     assert refs[0]["parsed_by"] == "llm"
 
 
+def test_a_stub_that_returns_the_whole_line_strips_markers_and_keeps_news():
+    """The live model copied the pasted line, including the list number and the news URL."""
+    from retraction_agent.extract import _lines
+    from retraction_agent.samples import INTEGRITY_SAMPLE
+    from retraction_agent.verdicts import build_verdicts
+
+    lines = _lines(INTEGRITY_SAMPLE)
+
+    def complete(messages, tools):
+        if any(item.get("role") == "tool" for item in messages):
+            return Reply("done")
+        payload = json.loads(messages[1]["content"])
+        items = []
+        for entry in payload["lines"]:
+            original = lines[entry["raw_line_index"]]
+            items.append(
+                _item(
+                    entry["raw_line_index"],
+                    title=original,
+                    year="2024" if "2024" in original else "",
+                )
+            )
+        return Reply("", [ToolCall("submit_extractions", {"items": items})])
+
+    plan = finalize_plan(INTEGRITY_SAMPLE, {"action": "dispatch", "references": []}, [])
+    calls = apply_llm_fallback(INTEGRITY_SAMPLE, plan, complete)
+    assert len(calls) == 1
+    row5 = plan["references"][4]
+    row6 = plan["references"][5]
+    assert row5["title"] == "Modeling Geometry and Semantics of Physical Damages"
+    assert "5." not in row5["title"]
+    assert row6 == {
+        "not_checkable": True,
+        "raw": "See the news writeup https://www.nytimes.com/2024/01/01/science/example-retraction-story.html",
+    }
+    verdict = build_verdicts([row6], [], "fb5f174f")[0]
+    assert verdict["label"] == "UNCONFIRMED"
+    assert verdict["reason"] == "Not a paper"
+    plain = "Coastal erosion and sediment transport in deltas is the pasted title here."
+    plain_refs, _calls = _apply(plain, [_item(0, title=plain)])
+    assert plain_refs == [{"title": plain, "parsed_by": "llm"}]
+
+
+def test_list_markers_are_stripped_from_the_returned_title():
+    title = "Coastal erosion and sediment transport in deltas is the pasted title here."
+    for line in (f"5) {title}", f"[5] {title}", f"- {title}", f"• {title}"):
+        refs, _calls = _apply(line, [_item(0, title=line)])
+        assert refs[0]["title"] == title
+        assert refs[0]["parsed_by"] == "llm"
+
+
+def test_a_title_that_still_contains_a_url_is_not_searched():
+    line = (
+        '"Coastal erosion report https://www.nytimes.com/2024/01/01/science/'
+        'example-retraction-story.html and the rest of the quoted title"'
+    )
+    refs, _calls = _apply(line, [_item(0, title=line.strip('"'), year="2024")])
+    assert refs[0]["not_checkable"] is True
+    assert "title" not in refs[0]
+    assert "doi" not in refs[0]
+
+
 def test_a_confident_doi_line_does_not_call_the_model():
     def complete(messages, tools):
         raise AssertionError("confident line was sent to the model")
