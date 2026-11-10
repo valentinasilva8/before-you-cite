@@ -10,6 +10,7 @@ from retraction_agent.verdicts import (
     FOOTER,
     build_verdicts,
     labels_in,
+    render_verdict_response,
     select_candidates,
     shares_half,
 )
@@ -68,7 +69,7 @@ def test_sample_four_verdicts_follow_the_readme_order():
     assert response.startswith("Confirm which title you meant. The choices are listed under the table.")
     assert "3 do not cite, 2 doesn't check out, 3 unconfirmed." in response
     assert "| # | Verdict | What we found | What to do |" in response
-    assert FOOTER in response
+    assert FOOTER not in response
     assert "Retraction Watch #70104." in response
     table_lines = [line for line in response.splitlines() if line.startswith("|")]
     assert table_lines
@@ -106,6 +107,23 @@ def test_sample_two_is_one_row_in_the_same_format():
     assert "Snapshot fb5f174f" in response
     data = [line for line in response.splitlines() if "NO ISSUES FOUND" in line]
     assert data and "snapshot" not in data[0].casefold()
+
+
+def test_a_do_not_cite_only_result_has_no_footer():
+    response = render_verdict_response(
+        [
+            {
+                "n": 1,
+                "label": "DO NOT CITE",
+                "reason": "Retraction on record",
+                "found": "The retraction is dated 2026-02-25. Retraction Watch #70104.",
+                "action": "Leave it out of your bibliography.",
+            }
+        ]
+    )
+    assert labels_in(response) == ["DO NOT CITE"]
+    assert FOOTER not in response
+    assert "No issues found never means" not in response
 
 
 def test_final_responses_omit_instructions_and_tool_names():
@@ -183,6 +201,15 @@ def test_title_candidates_need_half_their_words_and_stop_at_three():
     candidates.append({"title": far, "doi": "10.1000/far"})
     picked = select_candidates(query, candidates)
     assert [item["doi"] for item in picked] == ["10.1000/c0", "10.1000/c1", "10.1000/c2"]
+
+
+def test_filler_words_and_one_shared_word_do_not_make_a_similar_title():
+    query = "Modeling Geometry and Semantics of Physical Damages"
+    assert not shares_half(query, "The Semantics of Verbs")
+    assert not shares_half(query, "What Is Semantics?")
+    assert not shares_half(query, "Modeling Meanings in Robots and in the Semantic Web")
+    assert shares_half(query, "Modeling Geometry and Semantics of Physical Damages using IFC")
+    assert shares_half(query, "Geometry of Physical Damages")
 
 
 def test_a_distant_title_is_not_offered_for_confirmation():
