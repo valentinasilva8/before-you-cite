@@ -211,7 +211,11 @@ def test_a_distant_title_is_not_offered_for_confirmation():
         crossref=Far(),
     )
     assert "Confirm which title you meant" not in result["response"]
-    assert "Paste the full title, authors and DOI." in result["response"]
+    assert (
+        "We didn't find a paper with a similar title to this one "
+        "Modeling Geometry and Semantics of Physical Damages. "
+        "Paste the full title, authors, and DOI, then run the check again."
+    ) in result["response"]
     assert labels_in(result["response"]) == ["UNCONFIRMED"]
 
 
@@ -421,7 +425,10 @@ def test_each_reason_line_follows_the_status():
     unmatched = one({"title": "No such paper title here"}, {"status": "title_unverified", "query": "No such paper title here"})
     assert unmatched["reason"] == "No matching record found"
     assert unmatched["found"] == "This title did not match one paper."
-    assert unmatched["action"] == "Paste the full title, authors and DOI."
+    assert unmatched["action"] == (
+        "We didn't find a paper with a similar title to this one No such paper title here. "
+        "Paste the full title, authors, and DOI, then run the check again."
+    )
     close_query = "Modeling Geometry and Semantics of Physical Damages"
     close = build_verdicts(
         [{"title": close_query}],

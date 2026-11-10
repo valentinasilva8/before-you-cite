@@ -290,13 +290,9 @@ table.verdicts td.citation {
 
 .title-choices { margin-top: 12px; }
 
-.choices-label { margin: 0 0 8px; font-weight: 650; }
+.title-choice-block + .title-choice-block { margin-top: 16px; }
 
-.choice-query {
-  margin: 10px 0 6px;
-  color: var(--muted);
-  font-size: 14px;
-}
+.choices-label { margin: 0 0 8px; font-weight: 650; }
 
 .title-choice {
   display: block;
@@ -311,9 +307,11 @@ table.verdicts td.citation {
   cursor: pointer;
 }
 
-.choice-doi {
+.title-choice .choice-title { display: block; }
+
+.title-choice .choice-doi {
   display: block;
-  margin: 0 0 8px 10px;
+  margin: 4px 0 0;
   color: var(--muted);
   font-family: var(--mono);
   font-size: 12px;

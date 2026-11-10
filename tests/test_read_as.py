@@ -117,6 +117,9 @@ CHOICE_PAGE = """<!DOCTYPE html>
   <button id="clear" type="button">Clear</button>
   <script src="app.js"></script>
   <script>
+    const kept = "Ada (2020). A paper that stays. https://doi.org/10.1000/keep";
+    const pasted = [kept, "short title", "other pasted title"].join("\\n");
+    document.querySelector("#question").value = pasted;
     const answer = [
       "Confirm which title you meant. The choices are listed under the table.",
       "",
@@ -127,26 +130,71 @@ CHOICE_PAGE = """<!DOCTYPE html>
       "A writer note stays on the result.",
       "Query: short title",
       "1. Longer title about damages",
-      "DOI: 10.1000/abc"
+      "DOI: 10.1000/abc",
+      "Query: other pasted title",
+      "1. A different paper",
+      "DOI: 10.2000/xyz"
     ].join("\\n");
-    const node = renderAnswer(answer, []);
+    const node = renderAnswer(answer, [], pasted);
     document.body.appendChild(node);
     const note = node.querySelector(".confirm-note");
     const summary = node.querySelector(".summary");
     const choices = node.querySelector(".title-choices");
     const foot = node.querySelector(".snapshot-foot");
-    const button = node.querySelector(".title-choice");
+    const blocks = node.querySelectorAll(".title-choice-block");
+    const first = blocks[0];
+    const second = blocks[1];
+    const button = first && first.querySelector(".title-choice");
     const noteFirst = Boolean(note && summary && (note.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING));
     const underTable = Boolean(foot && choices && (foot.compareDocumentPosition(choices) & Node.DOCUMENT_POSITION_FOLLOWING));
+    const firstLabel = "No paper matched this title: short title. Is this what you meant? Click one below and the check runs again for that paper.";
+    const secondLabel = "No paper matched this title: other pasted title. Is this what you meant? Click one below and the check runs again for that paper.";
     document.body.setAttribute("data-note", note && note.textContent.startsWith("Confirm which title you meant") ? "yes" : "no");
     document.body.setAttribute("data-order", noteFirst ? "yes" : "no");
     document.body.setAttribute("data-under", underTable ? "yes" : "no");
     document.body.setAttribute("data-query", node.textContent.includes("short title") ? "yes" : "no");
     document.body.setAttribute("data-writer", node.textContent.includes("A writer note stays on the result.") ? "yes" : "no");
+    document.body.setAttribute("data-blocks", String(blocks.length));
+    document.body.setAttribute("data-first", first && first.querySelector(".choices-label") && first.querySelector(".choices-label").textContent === firstLabel ? "yes" : "no");
+    document.body.setAttribute("data-second", second && second.querySelector(".choices-label") && second.querySelector(".choices-label").textContent === secondLabel ? "yes" : "no");
+    const own = Boolean(
+      first && second
+      && first.textContent.includes("10.1000/abc")
+      && !first.textContent.includes("10.2000/xyz")
+      && second.textContent.includes("10.2000/xyz")
+      && !second.textContent.includes("10.1000/abc")
+    );
+    document.body.setAttribute("data-own", own ? "yes" : "no");
+    const showsPaper = Boolean(
+      button
+      && button.textContent.includes("Longer title about damages")
+      && button.querySelector(".choice-doi")
+      && button.querySelector(".choice-doi").textContent === "10.1000/abc"
+    );
+    document.body.setAttribute("data-button", showsPaper ? "yes" : "no");
+    let ran = "no";
+    let sentMessage = "";
+    window.fetch = (url, options) => {
+      if (String(url).indexOf("/chat") !== -1) {
+        ran = "yes";
+        try {
+          sentMessage = JSON.parse(options.body).message;
+        } catch (error) {
+          sentMessage = "";
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ response: "Checked.", session_id: "s", tool_calls: [] }),
+        });
+      }
+      return Promise.resolve({ ok: false, json: async () => ({}) });
+    };
     button.click();
-    const filled = document.querySelector("#question").value === '"Longer title about damages" https://doi.org/10.1000/abc';
-    document.body.setAttribute("data-filled", filled ? "yes" : "no");
-    document.body.setAttribute("data-run", document.querySelector("#run").disabled ? "no" : "yes");
+    const chosen = '"Longer title about damages" https://doi.org/10.1000/abc';
+    const expected = [kept, chosen, "other pasted title"].join("\\n");
+    document.body.setAttribute("data-replaced", document.querySelector("#question").value === expected ? "yes" : "no");
+    document.body.setAttribute("data-ran", ran);
+    document.body.setAttribute("data-same", sentMessage === expected ? "yes" : "no");
   </script>
 </body>
 </html>
@@ -182,5 +230,11 @@ def test_clicking_a_title_fills_the_box(tmp_path):
     assert 'data-under="yes"' in dom
     assert 'data-query="yes"' in dom
     assert 'data-writer="yes"' in dom
-    assert 'data-filled="yes"' in dom
-    assert 'data-run="yes"' in dom
+    assert 'data-blocks="2"' in dom
+    assert 'data-first="yes"' in dom
+    assert 'data-second="yes"' in dom
+    assert 'data-own="yes"' in dom
+    assert 'data-button="yes"' in dom
+    assert 'data-replaced="yes"' in dom
+    assert 'data-ran="yes"' in dom
+    assert 'data-same="yes"' in dom
