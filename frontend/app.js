@@ -51,7 +51,7 @@ function addResult(checked, node) {
   card.scrollIntoView({ block: "nearest" });
 }
 
-function renderAnswer(text, calls) {
+function renderAnswer(text, calls, source) {
   const node = document.createElement("div");
   node.className = "bubble assistant";
   const parsed = parseVerdictTable(text);
@@ -101,7 +101,7 @@ function renderAnswer(text, calls) {
   node.append(banner, actions, tableHost, snapshot);
   const after = splitAfter(parsed.after);
   if (after.choices.length) {
-    node.appendChild(renderChoices(after.choices));
+    node.appendChild(renderChoices(after.choices, source));
   }
   if (after.notes) {
     const rest = document.createElement("div");
@@ -200,47 +200,98 @@ function splitAfter(text) {
   return { notes: notesAfterTable(lines.slice(0, start).join("\n")), choices };
 }
 
-function renderChoices(groups) {
+function closeTitlePrompt(title) {
+  const pasted = String(title || "").trim();
+  return `No paper matched this title: ${pasted}. Is this what you meant? Click one below and the check runs again for that paper.`;
+}
+
+function renderChoices(groups, source) {
   const wrap = document.createElement("div");
   wrap.className = "title-choices";
-  const heading = document.createElement("p");
-  heading.className = "choices-label";
-  heading.textContent = "Click a title to put it in the box above.";
-  wrap.appendChild(heading);
   for (const group of groups) {
-    if (group.query) {
-      const query = document.createElement("p");
-      query.className = "choice-query";
-      query.textContent = group.query;
-      wrap.appendChild(query);
-    }
+    if (!group.options.length) continue;
+    const block = document.createElement("section");
+    block.className = "title-choice-block";
+    const heading = document.createElement("p");
+    heading.className = "choices-label";
+    heading.textContent = closeTitlePrompt(group.query);
+    block.appendChild(heading);
     for (const option of group.options) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "title-choice";
-      button.textContent = option.title;
-      button.addEventListener("click", () => useTitle(option));
-      wrap.appendChild(button);
+      const name = document.createElement("span");
+      name.className = "choice-title";
+      name.textContent = option.title;
+      button.appendChild(name);
       if (option.doi) {
         const id = document.createElement("span");
         id.className = "choice-doi";
         id.textContent = option.doi;
-        wrap.appendChild(id);
+        button.appendChild(id);
       }
+      button.addEventListener("click", () => useChoice(group.query, option, source));
+      block.appendChild(button);
     }
+    wrap.appendChild(block);
   }
   return wrap;
 }
 
-function useTitle(option) {
+function choiceCitation(option) {
   const title = String(option.title || "").trim();
   const doi = String(option.doi || "").replace(/^https?:\/\/(?:dx\.)?doi\.org\//i, "").trim();
-  const link = doi ? `https://doi.org/${doi}` : "";
   const quoted = title ? `"${title}"` : "";
-  question.value = [quoted, link].filter(Boolean).join(" ");
-  question.dispatchEvent(new Event("input", { bubbles: true }));
-  if (form) form.scrollIntoView({ block: "center" });
-  if (question) question.focus();
+  const link = doi ? `https://doi.org/${doi}` : "";
+  return [quoted, link].filter(Boolean).join(" ");
+}
+
+function lineToReplace(lines, needle) {
+  let best = -1;
+  let bestLen = Infinity;
+  for (let i = 0; i < lines.length; i++) {
+    const folded = foldText(lines[i]);
+    if (!folded || !folded.includes(needle)) continue;
+    if (folded === needle) return i;
+    if (folded.length < bestLen) {
+      best = i;
+      bestLen = folded.length;
+    }
+  }
+  return best;
+}
+
+function replaceCitation(source, pastedTitle, replacement) {
+  const text = String(source || "");
+  const needle = foldText(pastedTitle);
+  if (!text.trim() || !needle) return replacement;
+  const lines = text.split("\n");
+  const index = lineToReplace(lines, needle);
+  if (index < 0) return replacement;
+  const next = lines.slice();
+  next[index] = replacement;
+  return next.join("\n");
+}
+
+function textForCheck() {
+  const raw = question.value.trim();
+  if (!previewState.length) return raw;
+  const built = messageForPreview(previewEntries());
+  if (!built.ok || !built.message) return raw;
+  return built.message;
+}
+
+function useChoice(pastedTitle, option, source) {
+  const replacement = choiceCitation(option);
+  const live = textForCheck();
+  const needle = foldText(pastedTitle);
+  const stored = source == null ? "" : String(source);
+  const basis = needle && foldText(live).includes(needle) ? live : stored || live;
+  question.value = replaceCitation(basis, pastedTitle, replacement);
+  clearTimeout(previewTimer);
+  previewRequest += 1;
+  clearPreview();
+  runCheck();
 }
 
 function citationsFrom(calls) {
@@ -862,7 +913,7 @@ async function sendChat(message) {
     }
     sessionId = body.session_id || sessionId;
     clearPending();
-    addResult(message, renderAnswer(body.response || "No response.", body.tool_calls || []));
+    addResult(message, renderAnswer(body.response || "No response.", body.tool_calls || [], message));
     showTools(body.tool_calls || []);
   } catch (error) {
     clearPending();

@@ -127,6 +127,14 @@ def shares_half(query: str, title: str) -> bool:
     return shared * 2 >= len(candidate)
 
 
+def no_similar_title_action(title: str) -> str:
+    shown = " ".join(str(title or "").split())
+    return (
+        f"We didn't find a paper with a similar title to this one {shown}. "
+        "Paste the full title, authors, and DOI, then run the check again."
+    )
+
+
 def select_candidates(query: str, candidates: list[dict], limit: int = 3) -> list[dict]:
     picked = []
     for candidate in candidates or []:
@@ -258,7 +266,7 @@ def _decide(ref, code, status, rows, work, calls, snapshot_short) -> tuple[str, 
         action = (
             "Confirm which title you meant. The choices are listed under the table."
             if close
-            else "Paste the full title, authors and DOI."
+            else no_similar_title_action(query)
         )
         return (
             "COULD NOT VERIFY",
