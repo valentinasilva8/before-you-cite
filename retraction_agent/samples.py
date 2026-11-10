@@ -1,4 +1,4 @@
-"""Sample prompts and the file facts a script writes into the README."""
+"""Sample prompts and the file facts a script writes into data/expected_samples.json."""
 
 from retraction_agent.catalog import Catalog
 
@@ -56,24 +56,18 @@ CHATGPT_CLEAN = (
 )
 
 PROMPTS = {
-    "chatgpt_link": CHATGPT_LINK,
-    "chatgpt_citation": CHATGPT_CITATION,
-    "chatgpt_nature": CHATGPT_NATURE,
-    "chatgpt_clean": CHATGPT_CLEAN,
+    "doi_link": CHATGPT_LINK,
+    "reference_with_doi": CHATGPT_CLEAN,
+    "reading_list": INTEGRITY_SAMPLE,
+    "publisher_question": SAMPLE_3,
 }
 
 
 def sample_facts(catalog: Catalog) -> dict:
+    """Facts the remaining chips cite: the snapshot, the DOI-link record, and the publisher ranking."""
     nano = catalog.lookup_doi(NANO_DOI)
-    alpha = catalog.lookup_doi(ALPHAFOLD_DOI)
-    exact = catalog.lookup_title(EXACT_TITLE)
-    short = catalog.lookup_title(SHORT_TITLE)
     if nano["total"] != 1 or not nano["rows"]:
         raise RuntimeError("nano DOI did not resolve to one row")
-    if exact["total"] != 1 or not exact["rows"]:
-        raise RuntimeError("sample title did not resolve to one row")
-    if short["total"] != 0:
-        raise RuntimeError("shortened sample title matched the extract; it would not force a confirmation")
     top = catalog.top_publishers(8)
     return {
         "snapshot": {
@@ -85,27 +79,10 @@ def sample_facts(catalog: Catalog) -> dict:
             "byte_size": catalog.manifest["byte_size"],
             "nature_counts": catalog.nature_counts,
         },
-        "sample1": {
-            "turn1": SAMPLE_1_TURN_1,
-            "turn2": SAMPLE_1_TURN_2,
+        "doi_link": {
             "nano": nano["rows"][0],
-            "alphafold": {"doi": ALPHAFOLD_DOI, "rows": alpha["total"]},
-            "exact_title": exact["rows"][0],
-            "short_title": {"query": SHORT_TITLE, "rows": short["total"]},
-            "note": (
-                "Turn 1 pastes the shortened title, which is not an exact extract match. "
-                "The answer may cite the nano row and the AlphaFold zero count. "
-                "It must not cite record 70548 until the user confirms the exact title on turn 2."
-            ),
         },
-        "sample2": {
-            "prompt": SAMPLE_2,
-            "doi": ALPHAFOLD_DOI,
-            "rows": alpha["total"],
-            "note": "No record is a data limit. The answer does not say the paper is fine, reliable, or unretracted.",
-        },
-        "sample3": {
-            "prompt": SAMPLE_3,
+        "publisher_question": {
             "publishers": top["publishers"],
             "note": "Notice rows, reason tokens, and batch dates. Not a rate. Token counts are once per row.",
         },

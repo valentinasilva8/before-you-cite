@@ -300,8 +300,10 @@ def test_frontend_renders_a_table_and_hides_the_tool_log():
     assert "metaKey" in js
     assert "fallback: false" in js
     assert ".prepend(" in js
-    for label in ("DOI link", "Full citation", "Article URL", "Reference with DOI"):
+    for label in ("DOI link", "Reference with DOI", "Reading list (8)", "Publisher question"):
         assert label in js
+    assert "Full citation" not in js
+    assert "Article URL" not in js
 
 
 def test_what_it_checks_keeps_only_the_verified_lines():
