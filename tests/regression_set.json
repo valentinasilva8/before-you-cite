@@ -46,6 +46,12 @@
       "row_contains": ["Retraction Watch #32321."]
     },
     {
+      "id": "apa-shu-pnas-link",
+      "input": "Shu et al. (2012). Signing at the beginning makes ethics salient and decreases dishonest self-reports in comparison to signing at the end. https://www.pnas.org/doi/10.1073/pnas.1209746109",
+      "expected_label": "DO NOT CITE",
+      "row_contains": ["Retraction Watch #32321."]
+    },
+    {
       "id": "chatter-plus-pnas-url",
       "input": "Can you check this link ChatGPT gave me? https://www.pnas.org/doi/10.1073/pnas.1209746109",
       "expected_label": "DO NOT CITE",

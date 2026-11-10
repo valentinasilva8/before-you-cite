@@ -83,8 +83,10 @@ def test_committed_expected_samples_match_the_file():
 
 def test_sample_facts_match_file():
     facts = sample_facts(get_catalog())
-    assert facts["sample1"]["nano"]["record_id"] == "70104"
-    assert facts["sample1"]["alphafold"]["rows"] == 0
-    assert facts["sample1"]["short_title"]["rows"] == 0
-    assert facts["sample1"]["exact_title"]["record_id"] == "70548"
-    assert facts["sample3"]["publishers"][0]["notice_rows"] == 11524
+    assert set(facts) == {"snapshot", "doi_link", "publisher_question"}
+    assert facts["doi_link"]["nano"]["record_id"] == "70104"
+    assert facts["doi_link"]["nano"]["retraction_doi"] == "10.3390/nano16050293"
+    ranking = facts["publisher_question"]["publishers"]
+    assert len(ranking) == 8
+    assert ranking[0]["notice_rows"] == 11524
+    assert ranking[0]["publisher"] == "Hindawi"

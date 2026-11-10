@@ -120,13 +120,23 @@ def test_a_paused_preview_does_not_call_the_extractor():
 
 
 def test_samples_offer_the_clean_source():
-    from retraction_agent.samples import CHATGPT_CLEAN, PROMPTS
+    from retraction_agent.samples import CHATGPT_CLEAN, CHATGPT_LINK, INTEGRITY_SAMPLE, PROMPTS, SAMPLE_3
 
-    assert list(PROMPTS) == ["chatgpt_link", "chatgpt_citation", "chatgpt_nature", "chatgpt_clean"]
+    assert list(PROMPTS) == [
+        "doi_link",
+        "reference_with_doi",
+        "reading_list",
+        "publisher_question",
+    ]
+    assert PROMPTS["doi_link"] == CHATGPT_LINK
+    assert PROMPTS["reference_with_doi"] == CHATGPT_CLEAN
+    assert PROMPTS["reading_list"] == INTEGRITY_SAMPLE
+    assert PROMPTS["publisher_question"] == SAMPLE_3
     assert CHATGPT_CLEAN.startswith("ChatGPT gave me this source for my essay.")
     assert "10.1038/nature14539" in CHATGPT_CLEAN
     body = TestClient(app).get("/samples").json()
-    assert body["prompts"]["chatgpt_clean"] == CHATGPT_CLEAN
+    assert list(body["prompts"]) == list(PROMPTS)
+    assert body["prompts"] == PROMPTS
 
 
 def test_a_question_has_no_preview_items():
