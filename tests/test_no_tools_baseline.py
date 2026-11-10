@@ -1,23 +1,23 @@
 from datetime import datetime, timezone
-from pathlib import Path
 
 import pytest
 
 from retraction_agent.config import load_config
-from retraction_agent.samples import SAMPLE_1_TURN_1, SAMPLE_1_TURN_2, SAMPLE_2, SAMPLE_3
+from retraction_agent.samples import PROMPTS as SAMPLE_PROMPTS
 from scripts import no_tools_baseline
-from scripts.no_tools_baseline import PROMPTS, SYSTEM, main
+from scripts.no_tools_baseline import LABELS, PROMPTS, SYSTEM, main
 
 
-def test_prompts_are_the_three_readme_samples():
-    readme = Path("README.md").read_text(encoding="utf-8")
-    assert PROMPTS == [SAMPLE_1_TURN_1, SAMPLE_2, SAMPLE_3]
-    assert PROMPTS[0] is SAMPLE_1_TURN_1
-    assert PROMPTS[1] is SAMPLE_2
-    assert PROMPTS[2] is SAMPLE_3
-    assert SAMPLE_1_TURN_2 not in PROMPTS
-    for prompt in PROMPTS:
-        assert prompt in readme
+def test_prompts_equal_the_sample_entries():
+    assert PROMPTS is SAMPLE_PROMPTS
+    assert PROMPTS == SAMPLE_PROMPTS
+    assert list(PROMPTS) == [
+        "doi_link",
+        "reference_with_doi",
+        "reading_list",
+        "publisher_question",
+    ]
+    assert list(LABELS) == list(PROMPTS)
 
 
 def test_missing_vertex_auth_exits_2_without_writing(monkeypatch, capsys, tmp_path):
@@ -44,6 +44,7 @@ def test_a_real_run_prints_and_writes_the_answer_unchanged(monkeypatch, capsys, 
         "first answer, kept whole.\n\nsecond paragraph.   ",
         "sample two answer",
         "sample three answer\n",
+        "publisher answer, not trimmed.  ",
     ]
     seen = []
 
@@ -63,9 +64,8 @@ def test_a_real_run_prints_and_writes_the_answer_unchanged(monkeypatch, capsys, 
     config = load_config()
     body = capsys.readouterr().out
     document = output.read_text(encoding="utf-8")
-    assert body.startswith("## Sample 1\n\n" + SAMPLE_1_TURN_1 + "\n\n")
-    assert SAMPLE_2 in body
-    assert SAMPLE_3 in body
+    for key, prompt in PROMPTS.items():
+        assert f"## {LABELS[key]}\n\n{prompt}\n\n" in body
     for answer in answers:
         assert answer in body
         assert answer in document
@@ -76,6 +76,6 @@ def test_a_real_run_prints_and_writes_the_answer_unchanged(monkeypatch, capsys, 
         "Run: 2026-11-10 14:30:00 UTC\n\n"
     )
     assert document.endswith(body)
-    assert [call[0][0]["content"] for call in seen] == [SYSTEM, SYSTEM, SYSTEM]
-    assert [call[0][1]["content"] for call in seen] == PROMPTS
-    assert [call[1] for call in seen] == [None, None, None]
+    assert [call[0][0]["content"] for call in seen] == [SYSTEM, SYSTEM, SYSTEM, SYSTEM]
+    assert [call[0][1]["content"] for call in seen] == list(PROMPTS.values())
+    assert [call[1] for call in seen] == [None, None, None, None]

@@ -12,10 +12,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from retraction_agent.config import load_config
 from retraction_agent.llm import complete
-from retraction_agent.samples import SAMPLE_1_TURN_1, SAMPLE_2, SAMPLE_3
+from retraction_agent.samples import PROMPTS
 
-# README Samples 1, 2, and 3. Sample 1 has a second turn; this run uses turn 1 only.
-PROMPTS = [SAMPLE_1_TURN_1, SAMPLE_2, SAMPLE_3]
+# Chip labels, in the same order as PROMPTS. The prompt text is not copied here.
+LABELS = {
+    "doi_link": "DOI link",
+    "reference_with_doi": "Reference with DOI",
+    "reading_list": "Reading list (8)",
+    "publisher_question": "Publisher question",
+}
 
 SYSTEM = (
     "Answer from what you already know. You have no tools and no extract. "
@@ -25,10 +30,10 @@ SYSTEM = (
 OUTPUT = Path(__file__).resolve().parents[1] / "docs" / "no_tools_baseline.md"
 
 
-def render_samples(pairs: list[tuple[str, str]]) -> str:
+def render_samples(pairs: list[tuple[str, str, str]]) -> str:
     blocks = []
-    for index, (prompt, answer) in enumerate(pairs, start=1):
-        blocks.append(f"## Sample {index}\n\n{prompt}\n\n{answer}")
+    for label, prompt, answer in pairs:
+        blocks.append(f"## {label}\n\n{prompt}\n\n{answer}")
     return "\n\n".join(blocks) + "\n"
 
 
@@ -45,15 +50,16 @@ def render_document(model: str, vertex_location: str, run_at: datetime, body: st
 
 def main() -> None:
     config = load_config()
-    pairs: list[tuple[str, str]] = []
+    chips = [(LABELS[key], PROMPTS[key]) for key in PROMPTS]
+    pairs: list[tuple[str, str, str]] = []
     try:
-        for prompt in PROMPTS:
+        for label, prompt in chips:
             reply = complete(
                 [{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}],
                 None,
             )
             answer = reply.content if isinstance(reply.content, str) else ""
-            pairs.append((prompt, answer))
+            pairs.append((label, prompt, answer))
     except Exception as exc:
         print(f"NO_TOOLS_UNAVAILABLE {type(exc).__name__}: {exc}", file=sys.stderr)
         raise SystemExit(2)
