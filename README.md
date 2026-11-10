@@ -39,7 +39,7 @@ To see it working, click **Show how the agents worked** under any answer. Each c
 | Audit researchers (one per 5 references, up to 25) | Search the Retraction Watch file by DOI or exact title | `rw_lookup_doi`, `rw_lookup_title` |
 | Pattern researcher | Counts notices for one exact journal or publisher, or ranks publishers | `rw_pattern`, `rw_top_publishers` |
 | Crossref researcher | Checks each DOI and title in the live registries. Runs after the file lookups | `doi_agency`, `crossref_doi`, `datacite_work`, `crossref_title` |
-| Writer | Writes the summary under the table. Has no tools | none |
+| Writer | Writes the summary under the table on a citation check, and the whole answer on a publisher question. Has no tools | none |
 
 Code around the agents merges the parsed references into the plan, runs any lookup a model skipped, and throttles the registry calls.
 
@@ -47,16 +47,16 @@ Code around the agents merges the parsed references into the plan, runs any look
 
 Fixed rules read each line first. They are predictable and never guess.
 
-When a line has no DOI and no recognizable "(Year). Title." pattern, the citation extractor reads it instead. It tags the line into labelled fields (title, authors, year, venue, DOI, URL) in one call, and the output is checked before it is used:
+When a line has no DOI and no recognizable "(Year). Title." pattern, the citation extractor reads it instead, only when `llm_fallback.enabled` is true. It tags the line into labelled fields (title, authors, year, venue, DOI, URL) in one call, and the output is checked before it is used:
 
 - It must return exactly one item for every line it was sent.
-- Every field must appear word for word in your pasted line. If one does not, that line's output is discarded.
+- Every field must appear in your pasted line (ignoring capitalization and spacing). If one does not, that line's output is discarded.
 - A DOI must be well formed.
 - A line that fails is shown as UNCONFIRMED ("We could not read this citation"). It is never dropped and never repaired.
 
 The extractor cannot choose a verdict or look anything up. It can be switched off with `llm_fallback.enabled` in `config/config.json`.
 
-The page shows how each line was read (fields, plus a badge: `rules`, `ai` or `unreadable`) before you press Run check, so you can correct a misread first.
+Before you press Run check, the page shows how the fixed rules read each line (badge: rules or unreadable). If a line needs the extractor, it runs when you press Run check, and the answer's Read as line shows the badge ai.
 
 ## The five results
 
@@ -71,7 +71,7 @@ The page shows how each line was read (fields, plus a badge: `rules`, `ai` or `u
 | Source | What it is | Used for | Limits |
 |---|---|---|---|
 | Retraction Watch database (frozen copy) | Commit `fb5f174f8476824deaf340693f9a819ce5e29ded`, 2026-11-03. 73,597 notices: 68,155 retractions, 3,734 expressions of concern, 1,545 corrections, 163 reinstatements. SHA-256 `e5351ee51ab3f1da7fe98b3bd6c5c58049b8bff4705949ef6fd4f1a1315dd0ea`. CC0, distributed by Crossref | Notices, reasons and dates | Frozen on that date. Corrections and concerns are less complete than retractions. Loaded once when the process starts |
-| Crossref REST API (live) | Registry for most journal DOIs | Does the DOI exist, title, author, year, live update notices | Crossref now owns the Retraction Watch data, so it is not an independent second source |
+| Crossref REST API (live) | Registry for most journal DOIs | Does the DOI exist, title, author, year, live update notices | Crossref distributes the Retraction Watch data and also serves these live lookups, so it is not an independent second source |
 | doi.org registration lookup (live) | Says which registry holds a DOI | Sends each DOI to Crossref or DataCite | |
 | DataCite API (live) | Registry for arXiv and similar | Confirms the paper exists | No retraction data |
 
@@ -88,7 +88,7 @@ An AI assistant gave me this reference. Can you check that it exists?
 https://doi.org/10.3390/nano10122325
 ```
 
-**Expected:** DO NOT CITE. Retraction dated 2026-02-25, Retraction Watch #70104. Reasons: concerns about data, concerns about image, investigation by journal or publisher. Journal `Nanomaterials`, publisher `MDPI`, notice DOI `10.3390/nano16050293`. The 2020 date in Crossref's first update entry is not the retraction date.
+**Expected:** DO NOT CITE. Retraction dated 2026-02-25, Retraction Watch #70104. Reasons: concerns about data, concerns about image, investigation by journal or publisher. Journal `Nanomaterials`, publisher `MDPI`, notice DOI `10.3390/nano16050293`.
 
 **Sources:** Retraction Watch commit `fb5f174f`, record 70104. Crossref record for `10.3390/nano10122325`.
 
@@ -181,7 +181,7 @@ The full list is in `data/expected_samples.json`. `PLoS` is the publisher string
 
 - "No issues found" means nothing was found in this data on this date. It is not a quality judgment.
 - Corrections and expressions of concern in the file are less complete than retractions.
-- A title with no DOI is accepted only on an exact title match in Crossref, so a slightly different title comes back UNCONFIRMED.
+- A title with no DOI is accepted only on an exact title match in Crossref, and any author or year you pasted must agree. A slightly different title comes back UNCONFIRMED.
 - It checks that a paper exists and has no notice. It does not check whether the paper supports your argument.
 - The Retraction Watch copy is frozen at 2026-11-03. A later retraction shows only if Crossref's live data has it.
 - arXiv and other DataCite papers can be confirmed to exist but cannot be checked for retractions.
@@ -199,7 +199,7 @@ The local process binds `127.0.0.1:8000`. Cloud Run starts `uvicorn app:app --ho
 
 ## Tests
 
-`uv run pytest` does not call the model or Crossref. It includes a 15-case labelled regression set (`tests/regression_set.json`) covering retractions, wrong links, invented DOIs, corrections, arXiv and unreadable lines, so a parser change cannot quietly turn a retraction into a clean result.
+`uv run pytest` does not call the model or Crossref. It includes a 16-case labelled regression set (`tests/regression_set.json`) covering retractions, wrong links, invented DOIs, corrections, arXiv and unreadable lines, so a parser change cannot quietly turn a retraction into a clean result.
 
 Design details (rate limits, retry rules, how titles are confirmed) are in [docs/DESIGN.md](docs/DESIGN.md).
 
