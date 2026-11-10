@@ -47,7 +47,7 @@ To see it working, click **Show how the agents worked** under any answer. Each c
 | Audit researchers (one per 5 references, up to 25) | Search the Retraction Watch file by DOI or exact title | `rw_lookup_doi`, `rw_lookup_title` |
 | Pattern researcher | Counts notices for one exact journal or publisher, or ranks publishers | `rw_pattern`, `rw_top_publishers` |
 | Crossref researcher | Checks each DOI and title in the live registries. Runs after the file lookups | `doi_agency`, `crossref_doi`, `datacite_work`, `crossref_title` |
-| Writer | Writes the summary under the table on a citation check, and the whole answer on a publisher question. Has no tools | none |
+| Writer | Writes the summary under the table on a citation check. A top-publishers ranking is written in code, not by this agent. Has no tools | none |
 
 Code around the agents merges the parsed references into the plan, runs any lookup a model skipped, and throttles the registry calls.
 
@@ -98,7 +98,7 @@ An AI assistant gave me this reference. Can you check that it exists?
 https://doi.org/10.3390/nano10122325
 ```
 
-**Expected:** The page shows "1 checked: 1 do not cite." Verdict DO NOT CITE, reason line "Retraction on record". What we found: "The retraction is dated 2026-02-25. The recorded reasons are concerns about data, concerns about image, and investigation by the journal or publisher. Retraction Watch #70104." What to do: "Leave it out of your bibliography." Read as: DOI only, because title, authors and year are not in the paste (badge rules).
+**Expected:** The page shows "1 checked: 1 do not cite." Verdict DO NOT CITE, reason line "Retraction on record". What we found: "The retraction is dated 2026-02-25. The recorded reasons are concerns about data, concerns about image, and investigation by the journal or publisher. Retraction Watch #70104." What to do: "Leave it out of your bibliography." Read as: title, authors and year each "not found in your paste", badge "rules".
 
 **Sources:** Retraction Watch commit `fb5f174f`, record 70104. Crossref record for `10.3390/nano10122325`.
 
@@ -125,7 +125,9 @@ ChatGPT gave me this source for my essay. Is it real, and has it been retracted?
 LeCun, Y., Bengio, Y., & Hinton, G. (2015). Deep learning. Nature, 521, 436-444. https://doi.org/10.1038/nature14539
 ```
 
-**Expected:** The page shows "1 checked: 1 no issues found." Verdict NO ISSUES FOUND, reason line "Record found, no notice". What we found: "We found no retraction or correction, and Crossref has a record that matches your citation. We did not check whether the paper's content is relevant to your case." What to do: "This does not mean the paper is sound. Read it before relying on it." Read as: Title Deep learning, Authors LeCun, Y., Bengio, Y., & Hinton, G., Year 2015, DOI 10.1038/nature14539 (badge rules). Footer: "Retraction Watch found no record for this DOI in snapshot fb5f174f."
+**Expected:** The page shows "1 checked: 1 no issues found." Verdict NO ISSUES FOUND, reason line "Record found, no notice". What we found: "We found no retraction or correction, and Crossref has a record that matches your citation. We did not check whether the paper's content is relevant to your case." What to do: "This does not mean the paper is sound. Read it before relying on it." Read as: Title Deep learning, Authors LeCun, Y., Bengio, Y., & Hinton, G., Year 2015, DOI 10.1038/nature14539 (badge rules). Footer: "Retraction Watch snapshot fb5f174f, 73597 rows".
+
+The snapshot has 0 notice rows for `10.1038/nature14539`.
 
 **Sources:** Crossref record for `10.1038/nature14539`. Retraction Watch commit `fb5f174f`.
 
@@ -165,14 +167,14 @@ The page shows "8 checked: 3 do not cite, 2 doesn't check out, 3 unconfirmed." I
 
 | # | Result | Reason line | What we found |
 | --- | --- | --- | --- |
-| 1 | DO NOT CITE | Retraction on record | dated 2026-02-25, Retraction Watch #70104 |
-| 2 | DOESN'T CHECK OUT | Link is a different paper | the DOI resolves to "Highly accurate protein structure prediction with AlphaFold", Jumper, 2021 |
-| 3 | UNCONFIRMED | Exists, no retraction data | DataCite has the paper, but the Retraction Watch file does not cover this publisher, so a retraction could not be checked |
-| 4 | DOESN'T CHECK OUT | DOI not found in any registry | no Crossref or DataCite record, so it may be mistyped or invented, but this alone is not proof |
-| 5 | UNCONFIRMED | No matching record found | the title did not match one paper, and the page lists choices to confirm |
-| 6 | UNCONFIRMED | Not a paper | a news link, not a paper citation, so it was not checked |
-| 7 | DO NOT CITE | Link is the retraction notice | this DOI is the retraction notice for record 70104, so the paper was retracted |
-| 8 | DO NOT CITE | Retraction on record | expression of concern 2024-09-27, then retraction 2026-07-24, Retraction Watch #73988 |
+| 1 | DO NOT CITE | Retraction on record | The retraction is dated 2026-02-25. The recorded reasons are concerns about data, concerns about image, and investigation by the journal or publisher. Retraction Watch #70104. |
+| 2 | DOESN'T CHECK OUT | Link is a different paper | This link goes to a different paper than the one you pasted. The pasted title is Magnetic Ionic Liquid Nanocatalyst to Improve Mechanical and Thermal Properties of Epoxy Nanocomposites. The DOI resolves to Highly accurate protein structure prediction with AlphaFold, Jumper, 2021. |
+| 3 | UNCONFIRMED | Exists, no retraction data | DataCite has this paper. The Retraction Watch file does not cover this publisher, so a retraction or correction could not be checked. |
+| 4 | DOESN'T CHECK OUT | DOI not found in any registry | No registry (Crossref or DataCite) has a record for this DOI. It may be mistyped or invented, but this alone is not proof. |
+| 5 | UNCONFIRMED | No matching record found | This title did not match one paper. |
+| 6 | UNCONFIRMED | Not a paper | This is not a paper citation, for example a news article, so it was not checked. |
+| 7 | DO NOT CITE | Link is the retraction notice | This DOI is the retraction notice, so the paper was retracted. Retraction Watch #70104. |
+| 8 | DO NOT CITE | Retraction on record | An expression of concern was recorded earlier, on 2024-09-27. The retraction is dated 2026-07-24. The recorded reasons are duplication of data, duplication of an image, and original data or images not provided. Retraction Watch #73988. |
 
 Row 5 is read by the AI extractor (badge ai). Rows with a DOI are read by the fixed rules.
 
@@ -298,7 +300,7 @@ The local process binds `127.0.0.1:8000`. Cloud Run starts `uvicorn app:app --ho
 
 ## Tests
 
-`uv run pytest` does not call the model or Crossref. It includes a 16-case labelled regression set (`tests/regression_set.json`) covering retractions, wrong links, invented DOIs, corrections, arXiv and unreadable lines, so a parser change cannot quietly turn a retraction into a clean result.
+`uv run pytest` does not call the model or Crossref. It includes an 18-case labelled regression set (`tests/regression_set.json`) covering retractions, wrong links, invented DOIs, corrections, arXiv and unreadable lines, so a parser change cannot quietly turn a retraction into a clean result.
 
 Design details (rate limits, retry rules, how titles are confirmed) are in [docs/DESIGN.md](docs/DESIGN.md).
 
