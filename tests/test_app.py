@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app import app
 from retraction_agent.samples import PROMPTS
+from tests.fakes import scripted_complete
 
 
 def test_health_and_page():
@@ -64,3 +65,24 @@ def test_chat_shape_and_session(monkeypatch):
     assert second["session_id"] == first["session_id"]
     cleared = client.post(f"/clear?session_id={first['session_id']}")
     assert cleared.json()["status"] == "ok"
+
+
+def test_publisher_chat_keeps_the_response_shape(monkeypatch):
+    monkeypatch.setattr(
+        "retraction_agent.orchestrate.default_complete",
+        scripted_complete("The writer must not invent these counts."),
+    )
+    client = TestClient(app)
+    body = client.post("/chat", json={"message": PROMPTS["publisher_question"]}).json()
+    assert set(body) == {"response", "session_id", "tool_calls"}
+    assert isinstance(body["session_id"], str) and body["session_id"]
+    assert "Hindawi: 11,524 notice rows" in body["response"]
+    assert "PLoS: 1,805 notice rows" in body["response"]
+    assert "The writer must not invent these counts." not in body["response"]
+    assert body["tool_calls"]
+    for call in body["tool_calls"]:
+        assert set(call) == {"agent", "name", "args", "result"}
+        assert isinstance(call["agent"], str)
+        assert isinstance(call["name"], str)
+        assert isinstance(call["args"], dict)
+        assert isinstance(call["result"], str)

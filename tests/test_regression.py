@@ -91,7 +91,8 @@ def test_labelled_regression_row(case):
             call.get("agent") == "citation-extractor" and "parsed_by" in call["result"]
             for call in result["tool_calls"]
         )
-        assert any(
-            call["name"] == "record_status" and call["args"].get("parsed_by") == "llm"
-            for call in result["tool_calls"]
-        )
+        if case.get("expect_parsed_by", "llm") == "llm":
+            assert any(
+                call["name"] == "record_status" and call["args"].get("parsed_by") == "llm"
+                for call in result["tool_calls"]
+            )

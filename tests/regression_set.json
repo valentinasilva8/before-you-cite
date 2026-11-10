@@ -166,6 +166,43 @@
       ],
       "expected_labels": ["UNCONFIRMED", "UNCONFIRMED"],
       "each_row_contains": ["We could not read this citation."]
+    },
+    {
+      "id": "llm-list-marker-geometry",
+      "input": "5. Modeling Geometry and Semantics of Physical Damages",
+      "llm_items": [
+        {
+          "raw_line_index": 0,
+          "title": "5. Modeling Geometry and Semantics of Physical Damages",
+          "authors": "",
+          "year": "",
+          "venue": "",
+          "doi": "",
+          "url": ""
+        }
+      ],
+      "expected_label": "UNCONFIRMED",
+      "row_contains": ["No matching record found"],
+      "row_excludes": ["5. Modeling"]
+    },
+    {
+      "id": "llm-news-writeup-stays-not-a-paper",
+      "input": "6. See the news writeup https://www.nytimes.com/2024/01/01/science/example-retraction-story.html",
+      "llm_items": [
+        {
+          "raw_line_index": 0,
+          "title": "6. See the news writeup https://www.nytimes.com/2024/01/01/science/example-retraction-story.html",
+          "authors": "",
+          "year": "2024",
+          "venue": "",
+          "doi": "",
+          "url": ""
+        }
+      ],
+      "expected_label": "UNCONFIRMED",
+      "expect_parsed_by": "rules",
+      "row_contains": ["Not a paper"],
+      "row_excludes": ["No matching record found"]
     }
   ]
 }

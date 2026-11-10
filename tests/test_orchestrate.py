@@ -1,7 +1,9 @@
 import json
 
+import re
+
 from retraction_agent.catalog import get_catalog
-from retraction_agent.orchestrate import handle_turn
+from retraction_agent.orchestrate import _format_top_publishers, handle_turn
 from retraction_agent.identity import EXISTS_NO_INTEGRITY
 from retraction_agent.planning import parse_references
 from retraction_agent.samples import INTEGRITY_SAMPLE, SAMPLE_1_TURN_1, SAMPLE_1_TURN_2, SAMPLE_3
@@ -354,6 +356,120 @@ def test_a_resolved_arxiv_id_that_is_a_different_paper_is_a_mismatch():
     assert body["status"] == "identity_mismatch"
     assert body["returned"]["title"] == "Attention Is All You Need"
     assert crossref.work_calls == []
+
+
+def _publisher_blocks(text: str) -> list[str]:
+    parts = text.split("\n\n")
+    assert parts[0].startswith("Top ")
+    assert parts[-1].startswith("A reason token is counted once per row")
+    return parts[1:-1]
+
+
+def _parsed_block(block: str) -> dict:
+    lines = block.split("\n")
+    assert len(lines) <= 3
+    assert len(lines) == 3
+    head = re.fullmatch(r"(.+): ([\d,]+) notice rows", lines[0])
+    assert head
+    tokens = []
+    body = lines[1].removeprefix("  Reason tokens (rows): ")
+    assert body != lines[1]
+    for piece in body.split(", "):
+        match = re.fullmatch(r"(.+) \((\d+)\)", piece)
+        assert match
+        tokens.append({"token": match.group(1), "rows": int(match.group(2))})
+    dates = []
+    date_body = lines[2].removeprefix("  Batch-like dates (rows): ")
+    assert date_body != lines[2]
+    for piece in date_body.split(", "):
+        match = re.fullmatch(r"(\d{1,2}/\d{1,2}/\d{4})(?: \((\d+)\))?", piece)
+        assert match
+        item = {"date": match.group(1)}
+        if match.group(2) is not None:
+            item["notice_rows"] = int(match.group(2))
+        dates.append(item)
+    return {
+        "publisher": head.group(1),
+        "notice_rows": int(head.group(2).replace(",", "")),
+        "reason_tokens": tokens,
+        "batch_dates": dates,
+    }
+
+
+def test_publisher_question_is_one_block_per_publisher():
+    complete = scripted_complete("The writer must not invent these counts.")
+    result = handle_turn(
+        {"messages": []},
+        SAMPLE_3,
+        complete_fn=complete,
+        catalog=get_catalog(),
+        crossref=FakeCrossref(),
+    )
+    assert complete.state["writer_tools"] == []
+    text = result["response"]
+    assert "The writer must not invent these counts." not in text
+    top = get_catalog().top_publishers(8)
+    blocks = _publisher_blocks(text)
+    assert len(blocks) == 8
+    parsed = [_parsed_block(block) for block in blocks]
+    assert [item["publisher"] for item in parsed] == [item["publisher"] for item in top["publishers"]]
+    for got, expected in zip(parsed, top["publishers"]):
+        assert got["notice_rows"] == expected["notice_rows"]
+        assert got["reason_tokens"] == expected["reason_tokens"]
+        shown_dates = [(item["date"], item.get("notice_rows")) for item in got["batch_dates"]]
+        tool_dates = []
+        for item in expected["batch_dates"]:
+            date = str(item["date"]).split()[0]
+            tool_dates.append((date, item.get("notice_rows")))
+        assert shown_dates == tool_dates
+    assert "Hindawi: 11,524 notice rows" in text
+    assert "PLoS: 1,805 notice rows" in text
+    assert text.startswith(
+        f"Top 8 publishers by notice rows in Retraction Watch snapshot {top['snapshot_short']}."
+    )
+    assert set(result) == {"response", "tool_calls"}
+    for call in result["tool_calls"]:
+        assert set(call) == {"agent", "name", "args", "result"}
+        assert isinstance(call["result"], str)
+
+
+def test_a_named_journal_keeps_the_writer_under_the_publisher_blocks():
+    draft = "PLoS One has 1680 notice rows in snapshot fb5f174f. This is not a rate."
+    complete = scripted_complete(draft)
+    result = handle_turn(
+        {"messages": []},
+        'Which publishers have the most notice rows? Also, how many notice rows does the journal "PLoS One" have?',
+        complete_fn=complete,
+        catalog=get_catalog(),
+        crossref=FakeCrossref(),
+    )
+    assert complete.state["writer_tools"]
+    text = result["response"]
+    assert text.index("Hindawi: 11,524 notice rows") < text.index(draft)
+    assert text.index("separate entries.") < text.index(draft)
+
+
+def test_a_batch_date_without_a_count_is_left_bare():
+    text = _format_top_publishers(
+        {
+            "snapshot_short": "fb5f174f",
+            "publishers": [
+                {
+                    "publisher": "Example",
+                    "notice_rows": 12,
+                    "reason_tokens": [{"token": "Paper Mill", "rows": 3}],
+                    "batch_dates": [
+                        {"date": "1/2/2024 0:00", "iso": "2024-01-02"},
+                        {"date": "3/4/2020 0:00", "iso": "2020-03-04", "notice_rows": 4},
+                    ],
+                }
+            ],
+        }
+    )
+    assert "Example: 12 notice rows" in text
+    assert "1/2/2024" in text
+    assert "1/2/2024 (" not in text
+    assert "3/4/2020 (4)" in text
 
 
 def test_model_failure_is_not_replaced_with_a_written_answer():

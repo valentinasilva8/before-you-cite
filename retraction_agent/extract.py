@@ -17,6 +17,8 @@ from retraction_agent.planning import (
 )
 
 _LIST = re.compile(r"^\d+[\).\]]\s+")
+_LIST_MARKER = re.compile(r"^(?:\[\d+\]|\d+[\).\]]|[-*•·–—])\s+")
+_HTTP = re.compile(r"https?://", re.IGNORECASE)
 _BIBTEX = re.compile(
     r"^\s*@\w+\s*\{|\b(?:author|title|journal|booktitle|year|doi|url)\s*=\s*\{",
     re.IGNORECASE,
@@ -157,9 +159,15 @@ def apply_llm_fallback(message: str, plan: dict, complete_fn) -> list[dict]:
         return calls
     replacements = {}
     for index, line in sent:
-        replacements[index] = extracted.get(index) or _unparsed(line)
+        if _rules_not_checkable(line):
+            replacements[index] = _rules_not_checkable_ref(line)
+        else:
+            replacements[index] = extracted.get(index) or _unparsed(line)
     for index, line in overflow:
-        replacements[index] = _unparsed(line)
+        if _rules_not_checkable(line):
+            replacements[index] = _rules_not_checkable_ref(line)
+        else:
+            replacements[index] = _unparsed(line)
     plan["references"] = _merge_lines(lines, replacements, plan.get("references") or [])
     cap = limits()["max_references"]
     if len(plan["references"]) > cap:
@@ -215,7 +223,11 @@ def _one_call(sent: list[tuple[int, str]], complete_fn):
             ensure_ascii=False,
         )
 
-    payload = {"lines": [{"raw_line_index": index, "line": line} for index, line in sent]}
+    payload = {
+        "lines": [
+            {"raw_line_index": index, "line": _strip_list_marker(line)} for index, line in sent
+        ]
+    }
     messages = [
         {"role": "system", "content": EXTRACT_PROMPT},
         {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
@@ -234,15 +246,20 @@ def _one_call(sent: list[tuple[int, str]], complete_fn):
 
 
 def _accept_item(line: str, item: dict) -> dict | None:
+    if _rules_not_checkable(line):
+        return _rules_not_checkable_ref(line)
+    source = _strip_list_marker(line)
     kept = {}
     for key in _FIELDS:
         value = item.get(key)
         if value is None:
             continue
         value = " ".join(str(value).split())
+        if key == "title":
+            value = _strip_list_marker(value)
         if not value:
             continue
-        if not _appears(value, line):
+        if not _appears(value, source):
             return None
         if key == "doi" and ("{" in value or "}" in value or not normalize_doi(value)):
             return None
@@ -257,6 +274,8 @@ def _accept_item(line: str, item: dict) -> dict | None:
         ref["author"] = kept["authors"]
     if kept.get("year") and (ref.get("doi") or ref.get("title")):
         ref["year"] = str(kept["year"])
+    if not ref.get("doi") and _HTTP.search(ref.get("title") or ""):
+        return {"not_checkable": True, "raw": _body(line)[:300], "parsed_by": "llm"}
     if ref.get("doi") or ref.get("title"):
         return ref
     if kept.get("url"):
@@ -313,8 +332,30 @@ def _clean_dois(text: str) -> list[str]:
     return [doi for doi in _dois_in(text) if "{" not in doi and "}" not in doi]
 
 
+def _strip_list_marker(text: str) -> str:
+    """Drop a leading list marker. "5.", "5)", "[5]", "-", and a bullet all count."""
+    value = str(text or "").strip()
+    for _ in range(3):
+        updated = _LIST_MARKER.sub("", value, count=1).strip()
+        if updated == value:
+            return value
+        value = updated
+    return value
+
+
+def _rules_not_checkable(line: str) -> bool:
+    return any(ref.get("not_checkable") for ref in _citation_line(line))
+
+
+def _rules_not_checkable_ref(line: str) -> dict:
+    for ref in _citation_line(line):
+        if ref.get("not_checkable"):
+            return {"not_checkable": True, "raw": str(ref.get("raw") or _body(line))[:300]}
+    return {"not_checkable": True, "raw": _body(line)[:300]}
+
+
 def _body(line: str) -> str:
-    return _LIST.sub("", line).strip(" -*")
+    return _strip_list_marker(line).strip(" -*")
 
 
 def _lines(message: str) -> list[str]:
