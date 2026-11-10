@@ -125,7 +125,7 @@ ChatGPT gave me this source for my essay. Is it real, and has it been retracted?
 LeCun, Y., Bengio, Y., & Hinton, G. (2015). Deep learning. Nature, 521, 436-444. https://doi.org/10.1038/nature14539
 ```
 
-**Expected:** The page shows "1 checked: 1 no issues found." Verdict NO ISSUES FOUND, reason line "Record found, no notice". What we found: "We found no retraction or correction, and Crossref has a record that matches your citation. We did not check whether the paper's content is relevant to your case." What to do: "This does not mean the paper is sound. Read it before relying on it." Read as: Title Deep learning, Authors LeCun, Y., Bengio, Y., & Hinton, G., Year 2015, DOI 10.1038/nature14539 (badge rules). Footer: "Retraction Watch snapshot fb5f174f, 73597 rows".
+**Expected:** The page shows "1 checked: 1 no issues found." Verdict NO ISSUES FOUND, reason line "Record found, no notice". What we found: "We found no retraction or correction, and Crossref has a record that matches your citation. We did not check whether the paper's content is relevant to your case." What to do: "This does not mean the paper is sound. Read it before relying on it." Read as: Title Deep learning, Authors LeCun, Y., Bengio, Y., & Hinton, G., Year 2015, DOI 10.1038/nature14539 (badge rules). Footer: "According to snapshot fb5f174f, no record is found in Retraction Watch for this DOI. The DOI is registered with Crossref.".
 
 The snapshot has 0 notice rows for `10.1038/nature14539`.
 
