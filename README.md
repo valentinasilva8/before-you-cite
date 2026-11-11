@@ -2,7 +2,7 @@
 
 Paste the references a chatbot gave you. Before You Cite checks that each one exists, and whether it has been retracted, corrected, or flagged with an expression of concern.
 
-## Terms
+## Terms to Know
 
 - **Retraction:** a journal or publisher formally withdraws a published paper because of an error, misconduct or another reliability problem. The paper usually stays online, marked as retracted, and its findings should not be relied on.
 - **Correction:** a published fix to an error that does not invalidate the paper.
