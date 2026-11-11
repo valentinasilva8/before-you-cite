@@ -18,7 +18,7 @@
     "temperature": 0
   },
   "gap_round": {
-    "enabled": false,
+    "enabled": true,
     "max_tasks": 3,
     "max_candidates": 5,
     "researcher_tool_rounds": 2,
