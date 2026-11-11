@@ -13,12 +13,11 @@ Paste the references a chatbot gave you. Before You Cite checks that each one ex
 | | |
 |---|---|
 | App | https://before-you-cite-655901547612.europe-west1.run.app |
-| Access | Sign in with a Columbia Google account. [CONFIRM graders can get in] |
+| Access | Sign in with a Columbia Google account. |
 | Course | IEOR 4570 Project 2 |
 | Path | **Deep Research** |
 | Author | vt2450 |
 | Data | Retraction Watch snapshot `fb5f174f` (2026-11-03), 73,597 notices, plus live Crossref and DataCite lookups |
-| Time | A check of 25 references takes about [MEASURE] minutes |
 
 ## Questions it answers
 
@@ -50,76 +49,6 @@ To see it working, click **Show how the agents worked** under any answer. Each c
 | Writer | Writes the summary under the table on a citation check. A top-publishers ranking is written in code, not by this agent. Has no tools | none |
 
 Code around the agents merges the parsed references into the plan, runs any lookup a model skipped, and throttles the registry calls.
-
-## How a pasted reference is read
-
-Fixed rules read each line first. They are predictable and never guess.
-
-When a line has no DOI and no recognizable "(Year). Title." pattern, the AI reader (the citation extractor agent) reads it instead, only when `llm_fallback.enabled` is true. It tags the line into labelled fields (title, authors, year, venue, DOI, URL) in one call at `llm_fallback.temperature` 0, and the output is checked before it is used:
-
-- It must return exactly one item for every line it was sent.
-- Every field must appear in your pasted line (ignoring capitalization and spacing). If one does not, that line's output is discarded.
-- A DOI must be well formed.
-- A line whose AI reading fails these checks is shown as UNCONFIRMED ("We could not read this citation"). It is never dropped and never repaired.
-- If the AI reader returns no reading at all, the fixed rules' reading of the line stands.
-
-The AI reader runs only on Run check, and only for a line with no DOI and no clear Author (Year). Title. shape. The preview never calls the model. Every field it keeps must already appear in the pasted line, so it cannot invent a title, a DOI or a verdict.
-
-The extractor cannot choose a verdict or look anything up. It can be switched off with `llm_fallback.enabled` in `config/config.json`.
-
-Before you press Run check, the page shows how the fixed rules read each line (badge: rules or unreadable). If a line needs the extractor, it runs when you press Run check, and the answer's Read as line shows the badge ai.
-
-## How the AI reader works
-
-Paste these two lines:
-
-```
-Magnetic Ionic Liquid Nanocatalyst to Improve Mechanical and Thermal Properties of Epoxy Nanocomposites
-10.3390/nano10122325
-```
-
-What I saw on 2026-11-10, in 3 of 3 runs: the page says "2 checked: 2 do not cite". Row 1 (the title only) shows the ai badge, and its Read as line shows authors, year and DOI as "not found in your paste". Row 2 (the DOI) shows the rules badge. Both rows are DO NOT CITE: the retraction is dated 2026-02-25, the recorded reasons are concerns about data, concerns about image, and investigation by the journal or publisher, and the record is Retraction Watch #70104. The two rows are the same paper on purpose.
-
-It shows that the AI reader turned a bare title into a checkable citation, and the verdict comes from the registry data, not from the AI.
-
-To see it, open **Show how the agents worked** and find the `citation-extractor` call named `submit_extractions`. Its args hold `items`, the fields the AI returned for each line (`raw_line_index`, `title`, `authors`, `year`, `venue`, `doi`, `url`). Its result has `ok`, `parsed_by` and `items`, and each item has `raw_line_index`, `passed_copy_check` and `parsed_by`. `passed_copy_check` means the text passed the verbatim check, not that the reading was used.
-
-The AI reader can return a different reading on another run.
-
-## Similar titles
-
-When a title has no DOI and does not match one paper, the page lists up to three of the top five Crossref title results that share at least half of their content words, and at least two, with your title. Filler words such as "the", "of" and "and" do not count. You can click one to check it. Try this line, a near miss of a real title:
-
-```
-Krizhevsky, A. (2017). ImageNet classification with deep convolutional networks.
-```
-
-On 2026-11-10, in 3 of 3 live Crossref searches, the row was UNCONFIRMED ("No matching record found") and the same three choices were offered under the table, in this order:
-
-1. ImageNet classification with deep convolutional neural networks (DOI 10.1145/3065386)
-2. Comparison of Regularization Methods for ImageNet Classification with Deep Convolutional Neural Networks (DOI 10.1016/j.aasri.2014.05.013)
-3. Deep Convolutional Spiking Neural Networks for Image Classification (DOI 10.18122/td.1782.boisestate)
-
-The first is the real paper. Clicking it runs the check again for that title and DOI, which came back NO ISSUES FOUND. Crossref's search ranking can change, so the choices can differ on another day.
-
-## The five results
-
-- **DO NOT CITE.** A retraction is on record, or the link you pasted is the retraction notice.
-- **DOESN'T CHECK OUT.** The link goes to a different paper, or no registry has this DOI. It cannot be cited as written.
-- **CHECK FIRST.** A correction, expression of concern, or other notice is on record. Read it before citing.
-- **UNCONFIRMED.** The check did not finish: the title did not match one paper, the live lookup did not return, the paper is in a registry with no retraction data (for example arXiv), the line could not be read, or the item is not a paper.
-- **NO ISSUES FOUND.** A registry has a record and no retraction or correction was found. This does not check whether the paper's content fits your case, and it is not proof the paper is sound.
-
-## Data
-
-| Source | What it is | Used for | Limits |
-|---|---|---|---|
-| Retraction Watch database (frozen copy) | Commit `fb5f174f8476824deaf340693f9a819ce5e29ded`, 2026-11-03. 73,597 notices: 68,155 retractions, 3,734 expressions of concern, 1,545 corrections, 163 reinstatements. SHA-256 `e5351ee51ab3f1da7fe98b3bd6c5c58049b8bff4705949ef6fd4f1a1315dd0ea`. CC0, distributed by Crossref | Notices, reasons and dates | Frozen on that date. Corrections and concerns are less complete than retractions. Loaded once when the process starts |
-| Crossref REST API (live) | Registry for most journal DOIs | Does the DOI exist, title, author, year, live update notices | Crossref distributes the Retraction Watch data and also serves these live lookups, so it is not an independent second source |
-| doi.org registration lookup (live) | Says which registry holds a DOI | Sends each DOI to Crossref or DataCite | |
-| DataCite API (live) | Registry for arXiv and similar | Confirms the paper exists | No retraction data |
-
-Abstracts are never stored or quoted. Reason text is the Retraction Watch token list as written.
 
 ## Samples
 
@@ -313,6 +242,76 @@ The publisher string `PLoS` (1,805) is not the journal `PLoS One` (1,680). `Spri
 </details>
 
 **What's different:** This question cannot be answered from memory, so the plain model correctly declines, while the app answers it with exact notice counts, reason tokens and batch-like dates from a frozen, hash-pinned snapshot that anyone can reproduce.
+
+## How a pasted reference is read
+
+Fixed rules read each line first. They are predictable and never guess.
+
+When a line has no DOI and no recognizable "(Year). Title." pattern, the AI reader (the citation extractor agent) reads it instead, only when `llm_fallback.enabled` is true. It tags the line into labelled fields (title, authors, year, venue, DOI, URL) in one call at `llm_fallback.temperature` 0, and the output is checked before it is used:
+
+- It must return exactly one item for every line it was sent.
+- Every field must appear in your pasted line (ignoring capitalization and spacing). If one does not, that line's output is discarded.
+- A DOI must be well formed.
+- A line whose AI reading fails these checks is shown as UNCONFIRMED ("We could not read this citation"). It is never dropped and never repaired.
+- If the AI reader returns no reading at all, the fixed rules' reading of the line stands.
+
+The AI reader runs only on Run check, and only for a line with no DOI and no clear Author (Year). Title. shape. The preview never calls the model. Every field it keeps must already appear in the pasted line, so it cannot invent a title, a DOI or a verdict.
+
+The extractor cannot choose a verdict or look anything up. It can be switched off with `llm_fallback.enabled` in `config/config.json`.
+
+Before you press Run check, the page shows how the fixed rules read each line (badge: rules or unreadable). If a line needs the extractor, it runs when you press Run check, and the answer's Read as line shows the badge ai.
+
+## How the AI reader works
+
+Paste these two lines:
+
+```
+Magnetic Ionic Liquid Nanocatalyst to Improve Mechanical and Thermal Properties of Epoxy Nanocomposites
+10.3390/nano10122325
+```
+
+What I saw on 2026-11-10, in 3 of 3 runs: the page says "2 checked: 2 do not cite". Row 1 (the title only) shows the ai badge, and its Read as line shows authors, year and DOI as "not found in your paste". Row 2 (the DOI) shows the rules badge. Both rows are DO NOT CITE: the retraction is dated 2026-02-25, the recorded reasons are concerns about data, concerns about image, and investigation by the journal or publisher, and the record is Retraction Watch #70104. The two rows are the same paper on purpose.
+
+It shows that the AI reader turned a bare title into a checkable citation, and the verdict comes from the registry data, not from the AI.
+
+To see it, open **Show how the agents worked** and find the `citation-extractor` call named `submit_extractions`. Its args hold `items`, the fields the AI returned for each line (`raw_line_index`, `title`, `authors`, `year`, `venue`, `doi`, `url`). Its result has `ok`, `parsed_by` and `items`, and each item has `raw_line_index`, `passed_copy_check` and `parsed_by`. `passed_copy_check` means the text passed the verbatim check, not that the reading was used.
+
+The AI reader can return a different reading on another run.
+
+## Similar titles
+
+When a title has no DOI and does not match one paper, the page lists up to three of the top five Crossref title results that share at least half of their content words, and at least two, with your title. Filler words such as "the", "of" and "and" do not count. You can click one to check it. Try this line, a near miss of a real title:
+
+```
+Krizhevsky, A. (2017). ImageNet classification with deep convolutional networks.
+```
+
+On 2026-11-10, in 3 of 3 live Crossref searches, the row was UNCONFIRMED ("No matching record found") and the same three choices were offered under the table, in this order:
+
+1. ImageNet classification with deep convolutional neural networks (DOI 10.1145/3065386)
+2. Comparison of Regularization Methods for ImageNet Classification with Deep Convolutional Neural Networks (DOI 10.1016/j.aasri.2014.05.013)
+3. Deep Convolutional Spiking Neural Networks for Image Classification (DOI 10.18122/td.1782.boisestate)
+
+The first is the real paper. Clicking it runs the check again for that title and DOI, which came back NO ISSUES FOUND. Crossref's search ranking can change, so the choices can differ on another day.
+
+## The five results
+
+- **DO NOT CITE.** A retraction is on record, or the link you pasted is the retraction notice.
+- **DOESN'T CHECK OUT.** The link goes to a different paper, or no registry has this DOI. It cannot be cited as written.
+- **CHECK FIRST.** A correction, expression of concern, or other notice is on record. Read it before citing.
+- **UNCONFIRMED.** The check did not finish: the title did not match one paper, the live lookup did not return, the paper is in a registry with no retraction data (for example arXiv), the line could not be read, or the item is not a paper.
+- **NO ISSUES FOUND.** A registry has a record and no retraction or correction was found. This does not check whether the paper's content fits your case, and it is not proof the paper is sound.
+
+## Data
+
+| Source | What it is | Used for | Limits |
+|---|---|---|---|
+| Retraction Watch database (frozen copy) | Commit `fb5f174f8476824deaf340693f9a819ce5e29ded`, 2026-11-03. 73,597 notices: 68,155 retractions, 3,734 expressions of concern, 1,545 corrections, 163 reinstatements. SHA-256 `e5351ee51ab3f1da7fe98b3bd6c5c58049b8bff4705949ef6fd4f1a1315dd0ea`. CC0, distributed by Crossref | Notices, reasons and dates | Frozen on that date. Corrections and concerns are less complete than retractions. Loaded once when the process starts |
+| Crossref REST API (live) | Registry for most journal DOIs | Does the DOI exist, title, author, year, live update notices | Crossref distributes the Retraction Watch data and also serves these live lookups, so it is not an independent second source |
+| doi.org registration lookup (live) | Says which registry holds a DOI | Sends each DOI to Crossref or DataCite | |
+| DataCite API (live) | Registry for arXiv and similar | Confirms the paper exists | No retraction data |
+
+Abstracts are never stored or quoted. Reason text is the Retraction Watch token list as written.
 
 ## Known limits
 
