@@ -37,13 +37,15 @@ A lead agent plans each turn, researcher agents do the lookups in their own fres
 
 To see it working, click **Show how the agents worked** under any answer. Each call is listed with its agent name. A call the code made to guarantee a lookup is marked `(harness)`.
 
+When a journal or publisher you name matches no notice rows, the lead sees that gap and the closest names in the file, and may send one more round of researchers to count the names it judges to be the same, or stop. Try the publisher "Springer Nature" and look for `submit_gap_plan` from the lead under **Show how the agents worked**.
+
 ![Agent timeline for the DOI link sample](docs/images/readme-agent-timeline.png)
 
 ## Agents
 
 | Agent | Job | Tools |
 |---|---|---|
-| Lead | Reads the request and plans who looks up what | `submit_plan` |
+| Lead | Reads the request and plans who looks up what | `submit_plan`, `submit_gap_plan` |
 | Citation extractor | Reads citation lines the fixed rules cannot read confidently (see below). Runs only when needed | `submit_extractions` |
 | Audit researchers (one per 5 references, up to 25) | Search the Retraction Watch file by DOI or exact title | `rw_lookup_doi`, `rw_lookup_title` |
 | Pattern researcher | Counts notices for one exact journal or publisher, or ranks publishers | `rw_pattern`, `rw_top_publishers` |
@@ -293,6 +295,21 @@ In 3 of 3 live Crossref searches, the row was UNCONFIRMED ("No matching record f
 3. Deep Convolutional Spiking Neural Networks for Image Classification (DOI 10.18122/td.1782.boisestate)
 
 The first is the real paper. Clicking it runs the check again for that title and DOI, which came back NO ISSUES FOUND.
+
+## When the lead goes back for more
+
+Paste this prompt:
+
+```
+How many retraction notices does the publisher "Springer Nature" have in the extract? Do not compute a rate.
+```
+
+The file has no publisher string "Springer Nature", so the first round counts 0 notice rows. Under **Show how the agents worked**, the steps after the first round are:
+
+1. A `lead` step named `submit_gap_plan`, summarized as "Lead found a gap and sent N more researchers." Show raw lists the names the lead picked and any it was not allowed to pick.
+2. One `pattern-researcher-r2-N` step per picked name, each a `rw_pattern` call on a publisher string that exists in the file, for example Springer - Nature Publishing Group.
+
+The answer says "Springer Nature" matched 0 notice rows, then gives each counted file string as the file spells it, with its notice rows, for example Springer - Nature Publishing Group (3,736). The lead can pick different names on different runs, but it can only pick from names in the file, and every count comes from the file. A publisher question with "notice rows", "top", "most" or "batch" in it asks for the ranking instead, so it does not reach this step.
 
 ## The five results
 

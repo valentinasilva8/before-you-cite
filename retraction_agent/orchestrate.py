@@ -1,9 +1,13 @@
 """Lead, parallel researchers, one gap round, then the writer. Extract lookups finish before Crossref."""
 
 import json
+import logging
 import re
-from concurrent.futures import ThreadPoolExecutor
+import time
+from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import TimeoutError as FutureTimeout
 
+from retraction_agent import gaps
 from retraction_agent.citations import (
     CONFIRM_NOTE,
     confirmation_question,
@@ -56,6 +60,7 @@ def handle_turn(session: dict, message: str, *, complete_fn=None, catalog=None, 
     crossref = crossref or get_client()
     datacite = datacite or get_datacite()
     complete_fn = complete_fn or default_complete
+    started = time.monotonic()
     message = (message or "").strip()
     session.setdefault("messages", [])
     session.setdefault("pending_titles", [])
@@ -79,6 +84,7 @@ def handle_turn(session: dict, message: str, *, complete_fn=None, catalog=None, 
         tool_calls.extend(
             _research(plan, catalog, crossref, datacite, complete_fn, session, message)
         )
+        tool_calls.extend(_gap_rounds(tool_calls, catalog, complete_fn, started))
         pending = _pending(tool_calls, catalog)
         session["pending_titles"] = pending
         fresh = [call["result"] for call in tool_calls if call["agent"] != "lead"]
@@ -266,9 +272,11 @@ def _audit(index: int, references: list[dict], catalog, complete_fn) -> list[dic
     return calls
 
 
-def _pattern(plan: dict, catalog, complete_fn) -> list[dict]:
+def _pattern(
+    plan: dict, catalog, complete_fn, *, agent: str = "pattern-researcher", research_round: int = 1, max_rounds=None
+) -> list[dict]:
     task = {
-        "research_round": 1,
+        "research_round": research_round,
         "journals": plan.get("journals") or [],
         "publishers": plan.get("publishers") or [],
         "top_publishers": bool(plan.get("top_publishers")),
@@ -279,10 +287,102 @@ def _pattern(plan: dict, catalog, complete_fn) -> list[dict]:
         {"role": "user", "content": json.dumps(task, ensure_ascii=False)},
     ]
     _, calls = run_agent(
-        messages, PATTERN_TOOLS, pattern_runner(catalog), "pattern-researcher", limits()["max_tool_rounds"], complete_fn
+        messages, PATTERN_TOOLS, pattern_runner(catalog), agent, max_rounds or limits()["max_tool_rounds"], complete_fn
     )
-    _ensure_pattern("pattern-researcher", task, calls, catalog)
+    _ensure_pattern(agent, task, calls, catalog)
     return calls
+
+
+def _gap_rounds(calls: list[dict], catalog, complete_fn, started: float) -> list[dict]:
+    """The lead sees zero-row strings and file strings near them, and may send researchers once more.
+
+    Any exception, timeout, or malformed plan returns [] so the turn is exactly what it was without this round.
+    """
+    try:
+        settings = gaps.gap_settings()
+        if not settings["enabled"] or settings["extra_rounds"] < 1:
+            return []
+        if time.monotonic() - started > settings["skip_after_s"]:
+            return []
+        deadline = time.monotonic() + settings["budget_s"]
+        added: list[dict] = []
+        for round_no in range(2, 2 + settings["extra_rounds"]):
+            found = gaps.find_gaps(calls + added, catalog, settings["max_candidates"])
+            if not found or time.monotonic() >= deadline:
+                break
+            lead_call, tasks = _gap_lead(round_no, found, calls + added, complete_fn, settings, deadline)
+            added.append(lead_call)
+            if not tasks:
+                break
+            added.extend(_gap_tasks(round_no, tasks, catalog, complete_fn, settings, deadline))
+        return added
+    except Exception as exc:
+        logging.getLogger("before-you-cite").warning("gap round dropped: %s: %s", type(exc).__name__, str(exc)[:200])
+        return []
+
+
+def _bounded(fn, timeout: float):
+    pool = ThreadPoolExecutor(max_workers=1)
+    try:
+        return pool.submit(fn).result(timeout=max(0.0, timeout))
+    except FutureTimeout as exc:
+        raise gaps.GapAbort("lead timeout") from exc
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+
+
+def _gap_lead(round_no, found, prior, complete_fn, settings, deadline) -> tuple[dict, list[dict]]:
+    messages = [
+        {"role": "system", "content": gaps.LEAD_GAP_PROMPT.format(max_tasks=settings["max_tasks"])},
+        {"role": "user", "content": json.dumps({"research_round": round_no, "gaps": found}, ensure_ascii=False)},
+    ]
+    timeout = min(settings["lead_timeout_s"], deadline - time.monotonic())
+    _, made = _bounded(
+        lambda: run_agent(messages, gaps.LEAD_GAP_TOOLS, gaps.lead_gap_runner(), "lead", 1, complete_fn), timeout
+    )
+    if len(made) != 1 or made[0]["name"] != "submit_gap_plan":
+        raise gaps.GapAbort("lead did not call submit_gap_plan exactly once")
+    args = made[0]["args"]
+    _, tasks, record = gaps.validate_gap_plan(args, found, gaps.tried_strings(prior), settings["max_tasks"])
+    record["research_round"] = round_no
+    call = {"agent": "lead", "name": "submit_gap_plan", "args": args, "result": json.dumps(record, ensure_ascii=False)}
+    return call, tasks
+
+
+def _gap_tasks(round_no, tasks, catalog, complete_fn, settings, deadline) -> list[dict]:
+    jobs = []
+    for index, task in enumerate(tasks, start=1):
+        payload = {"journals": [], "publishers": [], "top_publishers": False}
+        payload["journals" if task["field"] == "journal" else "publishers"].append(task["string"])
+        jobs.append((f"pattern-researcher-r{round_no}-{index}", task, payload))
+    timeout = min(settings["researcher_timeout_s"], deadline - time.monotonic())
+    pool = ThreadPoolExecutor(max_workers=len(jobs))
+    try:
+        futures = [
+            pool.submit(
+                _pattern,
+                payload,
+                catalog,
+                complete_fn,
+                agent=agent,
+                research_round=round_no,
+                max_rounds=settings["researcher_tool_rounds"],
+            )
+            for agent, _task, payload in jobs
+        ]
+        _, late = wait(futures, timeout=max(0.0, timeout))
+        if late:
+            raise gaps.GapAbort("researcher timeout")
+        out = []
+        for (_agent, task, _payload), future in zip(jobs, futures):
+            made = future.result()
+            for call in made:
+                if call["name"] != "rw_pattern" or not _called([call], "rw_pattern", **{task["field"]: task["string"]}):
+                    raise gaps.GapAbort("researcher left its task")
+            out.extend(made)
+        return out
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
 
 
 def _casefold_round(calls: list[dict], catalog) -> list[dict]:
@@ -651,6 +751,8 @@ def _writer(
         "tool_results": evidence,
         "unconfirmed_titles": pending,
     }
+    if any(item["agent"].startswith("pattern-researcher-r") for item in evidence):
+        payload["later_round"] = gaps.WRITER_GAP_NOTE
     if previous is not None:
         payload["previous_draft"] = previous
         payload["fix"] = (
