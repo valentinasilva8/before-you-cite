@@ -28,16 +28,17 @@ A person's name alone is not a lookup, because names are not unique.
 
 ## Path chosen: Deep Research
 
-A lead agent plans each turn, researcher agents do the lookups in their own fresh contexts, and a writer with no tools writes the answer. This fits the topic for four reasons:
+A lead agent plans each turn, researcher agents do the lookups in their own fresh contexts, and a writer with no tools writes the answer. When a journal or publisher name finds nothing, the lead can send one more round of researchers. This fits the topic for five reasons:
 
 - One paste means many independent lookups. Up to 25 references are split into groups of five, and each group gets its own researcher, so no single context has to hold everything.
 - The jobs need different tools: searching the Retraction Watch file, counting notices for a journal or publisher, and live calls to Crossref and DataCite. Each researcher only has the tools for its job.
-- The writer has no tools, so it can only report what the researchers found. Any record id, DOI or commit it cites must appear in the tool results, or the sentence is dropped.
+- The writer has no tools, so it can only report what the researchers found. Any DOI, commit, or record id written as "record" and a number must appear in the tool results, or the sentence is dropped. Counts and dates in the writer's sentences are not checked.
 - Where the answer must be right, code decides. The five result labels are chosen in code from the lookups, and a model cannot pick them.
+- A name can be spelled differently in the file. "Springer Nature" finds 0 notice rows, but the file has "Springer - Nature Publishing Group". Code finds names in the file that share its words, and the lead judges which one is the same publisher, so a sister journal such as "PNAS Nexus" is not counted as "PNAS".
 
 To see it working, click **Show how the agents worked** under any answer. Each call is listed with its agent name. A call the code made to guarantee a lookup is marked `(harness)`.
 
-When a journal or publisher you name matches no notice rows, the lead sees that gap and the closest names in the file, and may send one more round of researchers to count the names it judges to be the same, or stop. Try the publisher "Springer Nature" and look for `submit_gap_plan` from the lead under **Show how the agents worked**.
+When a journal or publisher you name matches no notice rows, the lead may send one more round of researchers. See [When the lead goes back for more](#when-the-lead-goes-back-for-more).
 
 ![Agent timeline for the DOI link sample](docs/images/readme-agent-timeline.png)
 
@@ -45,14 +46,15 @@ When a journal or publisher you name matches no notice rows, the lead sees that 
 
 | Agent | Job | Tools |
 |---|---|---|
-| Lead | Reads the request and plans who looks up what | `submit_plan`, `submit_gap_plan` |
+| Lead | Reads the request and plans who looks up what. After the first round, decides if a journal or publisher with 0 notice rows needs one more round | `submit_plan`, `submit_gap_plan` |
 | Citation extractor | Reads citation lines the fixed rules cannot read confidently (see below). Runs only when needed | `submit_extractions` |
 | Audit researchers (one per 5 references, up to 25) | Search the Retraction Watch file by DOI or exact title | `rw_lookup_doi`, `rw_lookup_title` |
 | Pattern researcher | Counts notices for one exact journal or publisher, or ranks publishers | `rw_pattern`, `rw_top_publishers` |
+| Second-round pattern researchers (one per name the lead picked, up to 3) | Count notice rows for one name from the file, shown as `pattern-researcher-r2-1`, `-r2-2` and so on | `rw_pattern` |
 | Crossref researcher | Checks each DOI and title in the live registries. Runs after the file lookups | `doi_agency`, `crossref_doi`, `datacite_work`, `crossref_title` |
 | Writer | Writes the summary under the table on a citation check. A top-publishers ranking is written in code, not by this agent. Has no tools | none |
 
-Code around the agents merges the parsed references into the plan, runs any lookup a model skipped, and throttles the registry calls.
+Code around the agents merges the parsed references into the plan, runs any lookup a model skipped, and throttles the registry calls. It also finds names with 0 notice rows, lists the names in the file that share their words, and accepts only those names from the lead.
 
 ## Samples
 
@@ -304,12 +306,20 @@ Paste this prompt:
 How many retraction notices does the publisher "Springer Nature" have in the extract? Do not compute a rate.
 ```
 
-The file has no publisher string "Springer Nature", so the first round counts 0 notice rows. Under **Show how the agents worked**, the steps after the first round are:
+**Why it goes back to the lead.** The file has no publisher string "Springer Nature", so the first round counts 0 notice rows. Code can find names in the file that share its words, such as "Springer - Nature Publishing Group" and "Cureus (Part of Springer Nature as of December 2022)". Code cannot tell which one is the same publisher, so the lead decides. The lead answers with the `submit_gap_plan` tool, not free text. It either sends researchers to count names from the list (`more`) or stops (`done`).
 
-1. A `lead` step named `submit_gap_plan`, summarized as "Lead found a gap and sent N more researchers." Show raw lists the names the lead picked and any it was not allowed to pick.
-2. One `pattern-researcher-r2-N` step per picked name, each a `rw_pattern` call on a publisher string that exists in the file, for example Springer - Nature Publishing Group.
+**What code checks.** The lead can only pick names from the list code built, at most 3. Code drops a name that was already counted. If the lead's answer is missing, malformed, or too slow, code drops the whole step, and the answer is the same as without it. Every count comes from the file.
 
-The answer says "Springer Nature" matched 0 notice rows, then gives each counted file string as the file spells it, with its notice rows, for example Springer - Nature Publishing Group (3,736). The lead can pick different names on different runs, but it can only pick from names in the file, and every count comes from the file. A publisher question with "notice rows", "top", "most" or "batch" in it asks for the ranking instead, so it does not reach this step.
+There is at most one extra round, set by `limits.max_research_rounds` in `config/config.json`. The step has 45 seconds, and it is skipped if the turn has already taken 60 seconds. It can be switched off with `gap_round.enabled` in `config/config.json`.
+
+Under **Show how the agents worked**, the steps after the first round are:
+
+1. A `lead` step named `submit_gap_plan`, summarized as "Lead found a gap and sent 1 more researcher." Show raw has what the lead sent (`"action": "more"` and the names it picked) and what code accepted (`accepted`, `rejected`, `dropped_over_cap`, and `"research_round": 2`).
+2. One `pattern-researcher-r2-N` step per picked name. Each is a `rw_pattern` call on a publisher string that exists in the file.
+
+![The lead's submit_gap_plan step with Show raw open: action more, Springer - Nature Publishing Group accepted, research round 2](docs/images/readme-gap-round-t1.png)
+
+The answer should say "Springer Nature" matched 0 notice rows, then give each counted name as the file spells it, for example Springer - Nature Publishing Group (3,736). The lead can pick different names on different runs. A publisher question with "notice rows", "top", "most" or "batch" in it asks for the ranking instead, so it does not reach this step.
 
 ## The five results
 
@@ -335,6 +345,7 @@ The answer says "Springer Nature" matched 0 notice rows, then gives each counted
 - It checks that a paper exists and has no notice. It does not check whether the paper supports your argument.
 - The Retraction Watch copy is frozen at 2026-11-03. A later retraction shows only if Crossref's live data has it.
 - arXiv and other DataCite papers can be confirmed to exist but cannot be checked for retractions.
+- The lead goes back for more only when a journal or publisher name matches 0 notice rows. It does not retry titles or DOIs. A title with no match still asks you to confirm it.
 
 ## Run it
 
@@ -343,13 +354,13 @@ uv sync
 uv run app.py
 ```
 
-The local process binds `127.0.0.1:8000`. Cloud Run starts `uvicorn app:app --host 0.0.0.0 --port $PORT`. The model is `vertex_ai/gemini-3.5-flash-lite` in `vertex_location` `global`, from `config/config.json`, using the Cloud Run service account.
+The local process binds `127.0.0.1:8000`. Cloud Run starts `uvicorn app:app --host 0.0.0.0 --port $PORT`. The model is `vertex_ai/gemini-3.5-flash-lite` in `vertex_location` `global`, from `config/config.json`, using the Cloud Run service account. Two switches live in the same file: `llm_fallback.enabled` for the AI reader and `gap_round.enabled` for the lead's second round.
 
 `GET /health` returns the row count and the commit. `POST /chat` takes `{"message", "session_id"}` and returns `response`, `session_id`, and `tool_calls`. Each tool call has `agent`, `name`, `args`, and `result` (a string). `POST /clear` drops one session. Sessions live in memory, so the service runs with max instances 1.
 
 ## Tests
 
-`uv run pytest` does not call the model or Crossref. It includes an 18-case labelled regression set (`tests/regression_set.json`) covering retractions, wrong links, invented DOIs, corrections, arXiv and unreadable lines, so a parser change cannot quietly turn a retraction into a clean result.
+`uv run pytest` does not call the model or Crossref. It includes an 18-case labelled regression set (`tests/regression_set.json`) covering retractions, wrong links, invented DOIs, corrections, arXiv and unreadable lines, so a parser change cannot quietly turn a retraction into a clean result. It also has 27 tests for the gap round (`tests/test_gap_round.py`). They check that the step runs, that the lead can say done, that a bad or slow lead answer leaves the answer exactly as it was, that the caps hold, and that the verdicts of a citation check do not change.
 
 Design details (rate limits, retry rules, how titles are confirmed) are in [docs/DESIGN.md](docs/DESIGN.md).
 
