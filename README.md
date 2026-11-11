@@ -37,6 +37,8 @@ A lead agent plans each turn, researcher agents do the lookups in their own fres
 
 To see it working, click **Show how the agents worked** under any answer. Each call is listed with its agent name. A call the code made to guarantee a lookup is marked `(harness)`.
 
+![Agent timeline for the DOI link sample](docs/images/readme-agent-timeline.png)
+
 ## Agents
 
 | Agent | Job | Tools |
@@ -82,6 +84,10 @@ https://doi.org/10.3390/nano10122325
 </details>
 
 **What's different:** Without tools the model confirmed the DOI looked valid and never mentioned a retraction, so a student would have cited a retracted paper, while the app returns DO NOT CITE with Retraction Watch record #70104 so the claim can be checked.
+
+![Plain model answer next to the app result for the DOI link sample](docs/images/readme-compare-panel.png)
+
+The page shows this side by side under **Compare with a plain model** when a sample chip is run unchanged.
 
 ### 2. Reference with DOI
 
