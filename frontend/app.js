@@ -12,6 +12,9 @@ let previewState = [];
 let previewTimer = null;
 let previewRequest = 0;
 let healthMeta = { short: "", rows: null };
+let activeSampleKey = null;
+let samplePrompts = {};
+let previewText = "";
 
 const labels = {
   doi_link: "DOI link",
@@ -49,6 +52,7 @@ function addResult(checked, node) {
   card.append(header, node);
   log.prepend(card);
   card.scrollIntoView({ block: "nearest" });
+  return card;
 }
 
 function renderAnswer(text, calls, source) {
@@ -277,6 +281,7 @@ function useChoice(pastedTitle, option, source) {
   const replacement = choiceCitation(option);
   const stored = source == null ? "" : String(source);
   question.value = replaceCitation(stored, pastedTitle, replacement);
+  activeSampleKey = null;
   clearTimeout(previewTimer);
   previewRequest += 1;
   clearPreview();
@@ -822,8 +827,10 @@ async function loadMeta() {
       button.type = "button";
       button.dataset.key = key;
       button.textContent = labels[key] || key;
+      samplePrompts[key] = prompt;
       button.addEventListener("click", () => {
         question.value = prompt;
+        activeSampleKey = key;
         refreshPreview();
       });
       samples.appendChild(button);
@@ -863,6 +870,7 @@ form.addEventListener("submit", (event) => {
 });
 
 question.addEventListener("input", () => {
+  activeSampleKey = null;
   syncRun();
   clearTimeout(previewTimer);
   previewTimer = setTimeout(refreshPreview, 600);
@@ -893,6 +901,7 @@ if (tryDoi) {
 }
 
 document.querySelector("#clear").addEventListener("click", async () => {
+  activeSampleKey = null;
   if (sessionId) {
     await fetch(`/clear?session_id=${encodeURIComponent(sessionId)}`, { method: "POST" });
   }
@@ -998,6 +1007,7 @@ function showProblems(index, problems) {
 
 function clearPreview() {
   previewState = [];
+  previewText = "";
   if (previewList) previewList.replaceChildren();
   if (preview) preview.hidden = true;
   if (previewTruncated) previewTruncated.hidden = true;
@@ -1073,6 +1083,7 @@ async function refreshPreview() {
       return;
     }
     renderPreview(parsed.items, Boolean(parsed.truncated));
+    previewText = message;
   } catch (error) {
     if (token !== previewRequest) return;
   }
@@ -1085,8 +1096,9 @@ function syncRun() {
 function runCheck() {
   const raw = question.value.trim();
   if (!raw) return;
+  const sampleKey = sampleKeyFor(raw);
   if (!previewState.length) {
-    sendChat(raw);
+    sendChat(raw, sampleKey);
     return;
   }
   const built = messageForPreview(previewEntries());
@@ -1097,10 +1109,10 @@ function runCheck() {
     return;
   }
   if (!built.message) {
-    sendChat(raw);
+    sendChat(raw, sampleKey);
     return;
   }
-  sendChat(built.message);
+  sendChat(built.message, sampleKey);
 }
 
 async function requestParse(message) {
@@ -1128,12 +1140,13 @@ function failureCard(checked, text) {
 
 function clearInput() {
   question.value = "";
+  activeSampleKey = null;
   clearTimeout(previewTimer);
   previewRequest += 1;
   clearPreview();
 }
 
-async function sendChat(message) {
+async function sendChat(message, sampleKey = null) {
   const typed = question.value;
   if (run) run.disabled = true;
   startPending();
@@ -1159,7 +1172,14 @@ async function sendChat(message) {
     sessionId = body.session_id || sessionId;
     clearPending();
     const text = body.response || "No response.";
-    addResult(message, renderAnswer(text, body.tool_calls || [], message));
+    const card = addResult(message, renderAnswer(text, body.tool_calls || [], message));
+    if (sampleKey && !text.startsWith("Model call failed")) {
+      try {
+        attachCompare(card, sampleKey);
+      } catch (error) {
+        // The card stays as it is.
+      }
+    }
     showTools(body.tool_calls || []);
     if (!text.startsWith("Model call failed") && question.value === typed) {
       clearInput();
@@ -1170,6 +1190,154 @@ async function sendChat(message) {
   } finally {
     syncRun();
   }
+}
+
+const COMPARE_PREVIEW_CHARS = { reading_list: 600 };
+let baselinesPromise = null;
+let compareId = 0;
+
+function sampleKeyFor(raw) {
+  try {
+    if (!activeSampleKey) return null;
+    const prompt = samplePrompts[activeSampleKey];
+    if (typeof prompt !== "string" || raw !== prompt.trim()) return null;
+    if (previewState.length) {
+      if (previewText !== raw) return null;
+      if (!previewEntries().every((entry) => rowUnchanged(entry.item, entry.fields))) return null;
+    }
+    return activeSampleKey;
+  } catch (error) {
+    return null;
+  }
+}
+
+function loadBaselines() {
+  if (!baselinesPromise) {
+    try {
+      baselinesPromise = fetch("/static/baselines.json")
+        .then((response) => (response && response.ok ? response.json() : null))
+        .then((data) => (data && typeof data === "object" ? data : null))
+        .catch(() => null)
+        .then((data) => {
+          if (!data) baselinesPromise = null;
+          return data;
+        });
+    } catch (error) {
+      baselinesPromise = null;
+      return Promise.resolve(null);
+    }
+  }
+  return baselinesPromise;
+}
+
+async function attachCompare(card, key) {
+  try {
+    if (!card || !key) return;
+    const data = await loadBaselines();
+    const base = data && data[key];
+    if (!base || typeof base.plain_text !== "string" || !base.plain_text) return;
+    if (!card.isConnected) return;
+    const panel = buildCompare(base, card, key);
+    const foot = card.querySelector(".snapshot-foot");
+    if (foot) {
+      foot.before(panel);
+    } else {
+      (card.querySelector(".bubble") || card).appendChild(panel);
+    }
+  } catch (error) {
+    // No panel; the card stays as it is.
+  }
+}
+
+function compareLabel(text) {
+  const label = document.createElement("p");
+  label.className = "compare-label";
+  label.textContent = text;
+  return label;
+}
+
+function buildCompare(base, card, key) {
+  compareId += 1;
+  const panel = document.createElement("section");
+  panel.className = "compare";
+  const body = document.createElement("div");
+  body.className = "compare-body";
+  body.id = `compare-${compareId}`;
+  body.hidden = true;
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "compare-toggle";
+  toggle.setAttribute("aria-controls", body.id);
+  toggle.setAttribute("aria-expanded", "false");
+  toggle.textContent = "Compare with a plain model";
+  toggle.addEventListener("click", () => {
+    const open = body.hidden;
+    body.hidden = !open;
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    toggle.textContent = open ? "Hide the comparison" : "Compare with a plain model";
+  });
+
+  const grid = document.createElement("div");
+  grid.className = "compare-grid";
+  const plain = document.createElement("div");
+  plain.className = "compare-block";
+  plain.appendChild(compareLabel("Plain model, no tools"));
+  if (base.plain_note) {
+    const note = document.createElement("p");
+    note.className = "compare-tag";
+    note.textContent = String(base.plain_note);
+    plain.appendChild(note);
+  }
+  const full = base.plain_text;
+  const limit = COMPARE_PREVIEW_CHARS[key];
+  const text = document.createElement("pre");
+  text.className = "compare-text";
+  plain.appendChild(text);
+  if (limit && full.length > limit) {
+    const more = document.createElement("button");
+    more.type = "button";
+    more.className = "compare-more";
+    const show = (open) => {
+      text.textContent = open ? full : full.slice(0, limit);
+      more.setAttribute("aria-expanded", open ? "true" : "false");
+      more.textContent = open ? "Show less" : "Show full answer";
+    };
+    more.addEventListener("click", () => show(more.getAttribute("aria-expanded") !== "true"));
+    show(false);
+    plain.appendChild(more);
+  } else {
+    text.textContent = full;
+  }
+  grid.appendChild(plain);
+
+  const summary = card.querySelector(".summary");
+  const chip = card.querySelector(".chip");
+  if (summary && chip && summary.textContent.trim() && chip.textContent.trim()) {
+    const app = document.createElement("div");
+    app.className = "compare-block";
+    app.appendChild(compareLabel("This app"));
+    const line = document.createElement("p");
+    line.className = "compare-summary";
+    line.textContent = summary.textContent.trim();
+    const worst = document.createElement("p");
+    worst.className = "compare-worst";
+    worst.append("Most serious result: ");
+    const copy = document.createElement("span");
+    copy.className = `chip ${chipClass(chip.textContent.trim())}`;
+    copy.textContent = chip.textContent.trim();
+    worst.appendChild(copy);
+    app.append(line, worst);
+    grid.appendChild(app);
+  }
+
+  const foot = document.createElement("p");
+  foot.className = "compare-foot";
+  const model = String(base.model || "a plain model");
+  const when = base.run_utc ? `, run ${base.run_utc}` : "";
+  foot.textContent = `Stored output from ${model}${when}. This is not a live call.`;
+  body.append(grid, foot);
+  panel.append(toggle, body);
+  return panel;
 }
 
 loadMeta();
