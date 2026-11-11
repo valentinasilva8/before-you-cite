@@ -507,6 +507,108 @@ pre {
   border-radius: 8px;
 }
 
+.timeline-expand {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  font-size: 14px;
+  margin: 10px 0 4px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.timeline {
+  list-style: none;
+  margin: 10px 0 0 6px;
+  padding: 0;
+}
+
+.timeline-step {
+  position: relative;
+  padding: 0 0 14px 18px;
+  border-left: 2px solid var(--line);
+}
+
+.timeline-step:last-child { border-left-color: transparent; }
+
+.timeline-step::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--card);
+}
+
+.timeline-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeline-pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--chip);
+}
+
+.timeline-pill.tone-lead { background: #ead6c0; }
+.timeline-pill.tone-extractor { background: #e4dcef; }
+.timeline-pill.tone-audit { background: #f3d9c9; }
+.timeline-pill.tone-pattern { background: #e2e6d3; }
+.timeline-pill.tone-crossref { background: #d7e3f0; }
+.timeline-pill.tone-writer { background: #f0e1c4; }
+
+.timeline-name {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.timeline-summary {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.timeline-raw-toggle {
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  font-size: 12px;
+  margin-top: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid #c9bca6;
+  background: #e6d8c2;
+  color: #1c1915;
+  cursor: pointer;
+}
+
+.timeline-expand:focus-visible, .timeline-raw-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.timeline-raw[hidden] { display: none; }
+
+.timeline-counts {
+  margin-top: 4px;
+  font-weight: 650;
+}
+
 footer { padding-bottom: 28px; }
 
 .sr {

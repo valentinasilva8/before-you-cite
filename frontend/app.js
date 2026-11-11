@@ -561,7 +561,7 @@ function legendSentence(label) {
   return "";
 }
 
-function showTools(calls) {
+function showToolsPlain(calls) {
   tools.innerHTML = "";
   if (!calls || !calls.length) {
     tools.innerHTML = "<p class='aside-note'>No tools on this turn.</p>";
@@ -580,6 +580,226 @@ function showTools(calls) {
     `;
     tools.appendChild(block);
   }
+}
+
+function showTools(calls) {
+  try {
+    buildTimeline(calls);
+  } catch (error) {
+    try {
+      tools.replaceChildren();
+      showToolsPlain(calls);
+    } catch (fallbackError) {
+      try {
+        tools.replaceChildren();
+      } catch (ignored) {
+        // Nothing left to clean up.
+      }
+    }
+  }
+}
+
+function plural(count, one, many) {
+  return `${count} ${count === 1 ? one : many}`;
+}
+
+function shortText(value, max = 90) {
+  const text = String(value == null ? "" : value).replace(/\s+/g, " ").trim();
+  return text.length > max ? `${text.slice(0, max - 3).trim()}...` : text;
+}
+
+function endSentence(text) {
+  return /[.!?]$/.test(text) ? text : `${text}.`;
+}
+
+const TOOL_SUMMARIES = {
+  submit_plan(args) {
+    if (args.top_publishers) return "Planned a ranking of publishers by notice rows.";
+    const refs = Array.isArray(args.references) ? args.references.length : 0;
+    const names = [].concat(args.journals || [], args.publishers || []).length;
+    if (refs) return `Planned ${plural(refs, "reference", "references")} to check.`;
+    if (names) return `Planned a pattern lookup for ${plural(names, "name", "names")}.`;
+    return args.action ? `Plan action: ${shortText(args.action, 40)}.` : "";
+  },
+  submit_extractions(args, result) {
+    const items = Array.isArray(result.items) ? result.items : [];
+    if (!items.length) return "";
+    const passed = items.filter((item) => item && item.passed_copy_check).length;
+    return `AI reader read ${plural(items.length, "line", "lines")}, ${passed} passed the copy check.`;
+  },
+  rw_lookup_doi(args, result) {
+    const total = Number(result.total) || 0;
+    return total
+      ? `Retraction Watch has ${plural(total, "notice row", "notice rows")} for this DOI.`
+      : "No Retraction Watch notice for this DOI.";
+  },
+  rw_lookup_title(args, result) {
+    const total = Number(result.total) || 0;
+    return total
+      ? `Retraction Watch has ${plural(total, "notice row", "notice rows")} for this title.`
+      : "No Retraction Watch notice for this title.";
+  },
+  rw_pattern(args, result) {
+    if (result.ok === false) return "Pattern lookup did not run.";
+    const rows = Number(result.rows) || 0;
+    return endSentence(`${plural(rows, "notice row", "notice rows")} for ${result.field || "name"} ${shortText(result.matched, 60)}`);
+  },
+  rw_top_publishers(args, result) {
+    const list = Array.isArray(result.publishers) ? result.publishers : [];
+    if (!list.length) return "";
+    const top = list[0] || {};
+    const rows = Number(top.notice_rows);
+    const lead = top.publisher && Number.isFinite(rows) ? ` Top: ${shortText(top.publisher, 40)} (${rows.toLocaleString("en-US")}).` : "";
+    return `Ranked ${plural(list.length, "publisher", "publishers")} by notice rows.${lead}`;
+  },
+  doi_agency(args, result) {
+    if (result.registration === "not_registered") return "No registration agency has this DOI.";
+    return result.agency_label ? `Registered with ${shortText(result.agency_label, 40)}.` : "";
+  },
+  crossref_doi(args, result) {
+    if (result.ok === false) return "Crossref lookup did not return a record.";
+    const notices = Array.isArray(result.updated_by) ? result.updated_by.length : 0;
+    const title = result.title ? endSentence(`Crossref record: ${shortText(result.title, 70)}`) : "Crossref returned a record.";
+    return notices ? `${title} ${plural(notices, "linked notice", "linked notices")}.` : title;
+  },
+  datacite_work(args, result) {
+    if (result.ok === false) return "DataCite did not return a record.";
+    return result.title ? endSentence(`DataCite record: ${shortText(result.title, 70)}`) : "DataCite returned a record.";
+  },
+  crossref_title(args, result) {
+    if (result.ok === false) return "Crossref title search did not return.";
+    const count = Array.isArray(result.candidates) ? result.candidates.length : 0;
+    return `${plural(count, "Crossref candidate", "Crossref candidates")}, ${result.clear_match ? "one clear match" : "no clear match"}.`;
+  },
+};
+
+function summarize(call) {
+  try {
+    const summary = TOOL_SUMMARIES[call.name];
+    if (typeof summary !== "function") return "";
+    let result = {};
+    try {
+      const parsed = JSON.parse(call.result);
+      if (parsed && typeof parsed === "object") result = parsed;
+    } catch (error) {
+      result = {};
+    }
+    const args = call.args && typeof call.args === "object" ? call.args : {};
+    return String(summary(args, result) || "");
+  } catch (error) {
+    return "";
+  }
+}
+
+function agentTone(agent) {
+  const name = String(agent || "").toLowerCase();
+  for (const tone of ["lead", "extractor", "audit", "pattern", "crossref", "writer"]) {
+    if (name.includes(tone)) return `tone-${tone}`;
+  }
+  return "tone-harness";
+}
+
+function verdictCounts() {
+  const card = log.querySelector(".result-card");
+  if (!card) return "";
+  const chips = card.querySelectorAll("table.verdicts .chip");
+  if (!chips.length) return "";
+  const counts = {};
+  for (const chip of chips) {
+    const label = chip.textContent.trim();
+    counts[label] = (counts[label] || 0) + 1;
+  }
+  const order = Object.keys(SEVERITY).concat(Object.keys(counts).filter((label) => !(label in SEVERITY)));
+  const parts = order.filter((label) => counts[label]).map((label) => `${counts[label]} ${label.toLowerCase()}`);
+  return `Verdicts: ${parts.join(", ")}.`;
+}
+
+let timelineId = 0;
+
+function buildTimeline(calls) {
+  if (!Array.isArray(calls) || !calls.length) {
+    showToolsPlain(calls);
+    return;
+  }
+  const toggles = [];
+  const expand = document.createElement("button");
+  expand.type = "button";
+  expand.className = "timeline-expand";
+
+  function syncExpand() {
+    const open = toggles.length > 0 && toggles.every((item) => item.getAttribute("aria-expanded") === "true");
+    expand.setAttribute("aria-expanded", open ? "true" : "false");
+    expand.textContent = open ? "Collapse all raw calls" : "Expand all raw calls";
+  }
+
+  function setRaw(toggle, raw, open) {
+    raw.hidden = !open;
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    toggle.textContent = open ? "Hide raw" : "Show raw";
+  }
+
+  const list = document.createElement("ol");
+  list.className = "timeline";
+  const pairs = [];
+  for (const call of calls) {
+    const item = call && typeof call === "object" ? call : {};
+    const step = document.createElement("li");
+    step.className = "timeline-step";
+    const head = document.createElement("div");
+    head.className = "timeline-head";
+    const pill = document.createElement("span");
+    pill.className = `timeline-pill ${agentTone(item.agent)}`;
+    pill.textContent = String(item.agent || "agent");
+    const name = document.createElement("span");
+    name.className = "timeline-name";
+    name.textContent = String(item.name || "");
+    head.append(pill, name);
+    step.appendChild(head);
+    const summary = summarize(item);
+    if (summary) {
+      const line = document.createElement("p");
+      line.className = "timeline-summary";
+      line.textContent = summary;
+      step.appendChild(line);
+    }
+    timelineId += 1;
+    const raw = document.createElement("div");
+    raw.className = "timeline-raw";
+    raw.id = `timeline-raw-${timelineId}`;
+    const args = document.createElement("pre");
+    args.textContent = JSON.stringify(item.args, null, 2);
+    const result = document.createElement("pre");
+    result.textContent = String(item.result);
+    raw.append(args, result);
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "timeline-raw-toggle";
+    toggle.setAttribute("aria-controls", raw.id);
+    setRaw(toggle, raw, false);
+    toggle.addEventListener("click", () => {
+      setRaw(toggle, raw, raw.hidden);
+      syncExpand();
+    });
+    toggles.push(toggle);
+    pairs.push([toggle, raw]);
+    step.append(toggle, raw);
+    list.appendChild(step);
+  }
+  expand.addEventListener("click", () => {
+    const open = expand.getAttribute("aria-expanded") !== "true";
+    for (const [toggle, raw] of pairs) setRaw(toggle, raw, open);
+    syncExpand();
+  });
+  syncExpand();
+  const nodes = [expand, list];
+  const counted = verdictCounts();
+  if (counted) {
+    const row = document.createElement("p");
+    row.className = "timeline-counts";
+    row.textContent = counted;
+    nodes.push(row);
+  }
+  tools.replaceChildren(...nodes);
 }
 
 async function loadMeta() {
