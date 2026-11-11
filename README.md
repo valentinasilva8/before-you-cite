@@ -52,7 +52,7 @@ Code around the agents merges the parsed references into the plan, runs any look
 
 ## Samples
 
-The four samples are the four chips on the page, in the same order and with the same labels. Click the chip with the same name and the prompt is filled in, so nothing has to be pasted. Each sample shows the expected answer and sources, then the same prompt asked to the same model with no tools and no data. Numbers come from `uv run python scripts/fill_expected.py` and are stored in `data/expected_samples.json`.
+The four samples are the four chips on the page. Click the chip with the same name and the prompt is filled in. Each sample shows the expected answer and sources, then the same prompt asked to the same model with no tools and no data. Numbers come from `uv run python scripts/fill_expected.py` and are stored in `data/expected_samples.json`.
 
 **Takeaway:** Across these four samples the plain model missed or mislabeled every retracted paper and cannot show its evidence, and it was right only on well-known papers and obvious fakes.
 
@@ -67,7 +67,7 @@ https://doi.org/10.3390/nano10122325
 
 **Sources:** Retraction Watch commit `fb5f174f`, record 70104. Crossref record for `10.3390/nano10122325`.
 
-<details><summary>No tools answer (vertex_ai/gemini-3.5-flash-lite, run 2026-11-10 15:51 UTC, full file in docs/no_tools_baseline.md)</summary>
+<details><summary>No tools answer (vertex_ai/gemini-3.5-flash-lite, full file in docs/no_tools_baseline.md)</summary>
 
 > Based on the structure of the DOI provided (`10.3390/nano10122325`), this corresponds to an article published in the open-access journal *Nanomaterials* (published by MDPI). 
 > 
@@ -81,7 +81,7 @@ https://doi.org/10.3390/nano10122325
 
 </details>
 
-**What's different:** Without tools the model confirmed the DOI looked valid and never mentioned a retraction, so a student would have cited a paper that was retracted on 2026-02-25, while the app returns DO NOT CITE with the retraction date and Retraction Watch record #70104 so the claim can be checked.
+**What's different:** Without tools the model confirmed the DOI looked valid and never mentioned a retraction, so a student would have cited a retracted paper, while the app returns DO NOT CITE with Retraction Watch record #70104 so the claim can be checked.
 
 ### 2. Reference with DOI
 
@@ -90,13 +90,11 @@ ChatGPT gave me this source for my essay. Is it real, and has it been retracted?
 LeCun, Y., Bengio, Y., & Hinton, G. (2015). Deep learning. Nature, 521, 436-444. https://doi.org/10.1038/nature14539
 ```
 
-**Expected:** The page shows "1 checked: 1 no issues found." Verdict NO ISSUES FOUND, reason line "Record found, no notice". What we found: "We found no retraction or correction, and Crossref has a record that matches your citation. We did not check whether the paper's content is relevant to your case." What to do: "This does not mean the paper is sound. Read it before relying on it." Read as: Title Deep learning, Authors LeCun, Y., Bengio, Y., & Hinton, G., Year 2015, DOI 10.1038/nature14539 (badge rules). Under the table: "Retraction Watch snapshot fb5f174f, 73597 rows", then "No issues found never means a paper is reliable. This tool checks that a registry has a record for a citation, and whether a retraction or correction is on record. It does not check whether the paper supports your claim." Any writer notes follow that.
-
-The snapshot has 0 notice rows for `10.1038/nature14539`.
+**Expected:** The page shows "1 checked: 1 no issues found." Verdict NO ISSUES FOUND, reason line "Record found, no notice". What we found: "We found no retraction or correction, and Crossref has a record that matches your citation. We did not check whether the paper's content is relevant to your case." What to do: "This does not mean the paper is sound. Read it before relying on it." Read as: Title Deep learning, Authors LeCun, Y., Bengio, Y., & Hinton, G., Year 2015, DOI 10.1038/nature14539 (badge rules). Under the table: "Retraction Watch snapshot fb5f174f, 73597 rows", then "No issues found never means a paper is reliable. This tool checks that a registry has a record for a citation, and whether a retraction or correction is on record. It does not check whether the paper supports your claim."
 
 **Sources:** Crossref record for `10.1038/nature14539`. Retraction Watch commit `fb5f174f`.
 
-<details><summary>No tools answer (vertex_ai/gemini-3.5-flash-lite, run 2026-11-10 15:51 UTC, full file in docs/no_tools_baseline.md)</summary>
+<details><summary>No tools answer (vertex_ai/gemini-3.5-flash-lite, full file in docs/no_tools_baseline.md)</summary>
 
 > **Yes, this source is real**, and it is one of the most famous and widely cited papers in the field of artificial intelligence. 
 > 
@@ -141,11 +139,11 @@ The page shows "8 checked: 3 do not cite, 2 doesn't check out, 3 unconfirmed." T
 | 7 | DO NOT CITE | Link is the retraction notice | This DOI is the retraction notice, so the paper was retracted. Retraction Watch #70104. |
 | 8 | DO NOT CITE | Retraction on record | An expression of concern was recorded earlier, on 2024-09-27. The retraction is dated 2026-07-24. The recorded reasons are duplication of data, duplication of an image, and original data or images not provided. Retraction Watch #73988. |
 
-Rows 1, 2, 3, 4, 7 and 8 have a DOI and are read by the fixed rules. Rows 5 and 6 have no DOI, so on Run check both are sent to the AI reader. Row 5 keeps its title and ends UNCONFIRMED, and What to do says "We didn't find a paper with a similar title to this one Modeling Geometry and Semantics of Physical Damages. Paste the full title, authors, and DOI, then run the check again." Row 6 is read by the AI, but the rules mark it as not a paper, so the AI result is discarded and the row shows no ai badge. Rows that depend on live Crossref or DataCite lookups can change when those registries change.
+Rows 1, 2, 3, 4, 7 and 8 have a DOI and are read by the fixed rules. Rows 5 and 6 have no DOI, so on Run check both are sent to the AI reader. Row 5 keeps its title and ends UNCONFIRMED, and What to do says "We didn't find a paper with a similar title to this one Modeling Geometry and Semantics of Physical Damages. Paste the full title, authors, and DOI, then run the check again." Row 6 is read by the AI, but the rules mark it as not a paper, so the AI result is discarded and the row shows no ai badge.
 
 **Sources:** Retraction Watch commit `fb5f174f` (records 70104, 73988, 73993). Crossref, doi.org and DataCite lookups for each DOI.
 
-<details><summary>No tools answer (vertex_ai/gemini-3.5-flash-lite, run 2026-11-10 15:51 UTC, full file in docs/no_tools_baseline.md)</summary>
+<details><summary>No tools answer (vertex_ai/gemini-3.5-flash-lite, full file in docs/no_tools_baseline.md)</summary>
 
 > Here is an audit of the provided citations, assessing their accuracy, consistency, and validity based on available scholarly records.
 > 
@@ -208,7 +206,7 @@ Rows 1, 2, 3, 4, 7 and 8 have a DOI and are read by the fixed rules. Rows 5 and 
 
 </details>
 
-**What's different:** The three citations that should not be cited (rows 1, 7 and 8) are exactly the ones the plain model got wrong: it passed rows 1 and 8 as valid and called the retraction notice in row 7 an invalid DOI, while the app flags all three with Retraction Watch records #70104 and #73988 (the plain model did catch rows 2 and 4, as the app does).
+**What's different:** The three citations that should not be cited (rows 1, 7 and 8) are exactly the ones the plain model got wrong: it passed rows 1 and 8 as valid and called the retraction notice in row 7 an invalid DOI, while the app flags all three with Retraction Watch records #70104 and #73988.
 
 ### 4. Publisher question
 
@@ -218,7 +216,7 @@ In the shipped extract, which publishers have the most notice rows? For the top 
 
 **Expected:**
 
-The page returns one short block per publisher (notice rows, reason tokens, batch-like dates). They are notice counts, not rates.
+The page returns one short block per publisher.
 
 | Publisher | Notice rows | Top reason token (rows) | Top batch date (rows) |
 | --- | ---: | --- | --- |
@@ -235,27 +233,25 @@ The publisher string `PLoS` (1,805) is not the journal `PLoS One` (1,680). `Spri
 
 **Sources:** Retraction Watch commit `fb5f174f`.
 
-<details><summary>No tools answer (vertex_ai/gemini-3.5-flash-lite, run 2026-11-10 15:51 UTC, full file in docs/no_tools_baseline.md)</summary>
+<details><summary>No tools answer (vertex_ai/gemini-3.5-flash-lite, full file in docs/no_tools_baseline.md)</summary>
 
 > I do not have access to the shipped extract, any database records, or specific datasets for this query. Therefore, I cannot list the top publishers, their notice-row counts, reason tokens, or batch dates.
 
 </details>
 
-**What's different:** This question cannot be answered from memory, so the plain model correctly declines, while the app answers it with exact notice counts, reason tokens and batch-like dates from a frozen, hash-pinned snapshot that anyone can reproduce.
+**What's different:** This question cannot be answered from memory, so the plain model correctly declines, while the app answers it from a frozen, hash-pinned snapshot.
 
 ## How a pasted reference is read
 
-Fixed rules read each line first. They are predictable and never guess.
+Fixed rules read each line first.
 
-When a line has no DOI and no recognizable "(Year). Title." pattern, the AI reader (the citation extractor agent) reads it instead, only when `llm_fallback.enabled` is true. It tags the line into labelled fields (title, authors, year, venue, DOI, URL) in one call at `llm_fallback.temperature` 0, and the output is checked before it is used:
+When a line has no DOI and no recognizable "(Year). Title." pattern, the AI reader (the citation extractor agent) reads it instead. It tags the line into labelled fields (title, authors, year, venue, DOI, URL), and the output is checked before it is used:
 
 - It must return exactly one item for every line it was sent.
-- Every field must appear in your pasted line (ignoring capitalization and spacing). If one does not, that line's output is discarded.
+- Every field must appear in your pasted line (ignoring capitalization and spacing).
 - A DOI must be well formed.
 - A line whose AI reading fails these checks is shown as UNCONFIRMED ("We could not read this citation"). It is never dropped and never repaired.
 - If the AI reader returns no reading at all, the fixed rules' reading of the line stands.
-
-The AI reader runs only on Run check, and only for a line with no DOI and no clear Author (Year). Title. shape. The preview never calls the model. Every field it keeps must already appear in the pasted line, so it cannot invent a title, a DOI or a verdict.
 
 The extractor cannot choose a verdict or look anything up. It can be switched off with `llm_fallback.enabled` in `config/config.json`.
 
@@ -270,17 +266,15 @@ Magnetic Ionic Liquid Nanocatalyst to Improve Mechanical and Thermal Properties 
 10.3390/nano10122325
 ```
 
-What I saw on 2026-11-10, in 3 of 3 runs: the page says "2 checked: 2 do not cite". Row 1 (the title only) shows the ai badge, and its Read as line shows authors, year and DOI as "not found in your paste". Row 2 (the DOI) shows the rules badge. Both rows are DO NOT CITE: the retraction is dated 2026-02-25, the recorded reasons are concerns about data, concerns about image, and investigation by the journal or publisher, and the record is Retraction Watch #70104. The two rows are the same paper on purpose.
+What I saw on 2026-11-10, in 3 of 3 runs: the page says "2 checked: 2 do not cite". Row 1 (the title only) shows the ai badge, and its Read as line shows authors, year and DOI as "not found in your paste". Row 2 (the DOI) shows the rules badge. Both rows are DO NOT CITE, Retraction Watch #70104. The two rows are the same paper on purpose.
 
-It shows that the AI reader turned a bare title into a checkable citation, and the verdict comes from the registry data, not from the AI.
+The AI reader turned a bare title into a checkable citation, and the verdict comes from the registry data, not from the AI.
 
 To see it, open **Show how the agents worked** and find the `citation-extractor` call named `submit_extractions`. Its args hold `items`, the fields the AI returned for each line (`raw_line_index`, `title`, `authors`, `year`, `venue`, `doi`, `url`). Its result has `ok`, `parsed_by` and `items`, and each item has `raw_line_index`, `passed_copy_check` and `parsed_by`. `passed_copy_check` means the text passed the verbatim check, not that the reading was used.
 
-The AI reader can return a different reading on another run.
-
 ## Similar titles
 
-When a title has no DOI and does not match one paper, the page lists up to three of the top five Crossref title results that share at least half of their content words, and at least two, with your title. Filler words such as "the", "of" and "and" do not count. You can click one to check it. Try this line, a near miss of a real title:
+When a title has no DOI and does not match one paper, the page lists up to three of the top five Crossref title results that share at least half of their content words with your title. You can click one to check it. Try this line, a near miss of a real title:
 
 ```
 Krizhevsky, A. (2017). ImageNet classification with deep convolutional networks.
@@ -292,7 +286,7 @@ On 2026-11-10, in 3 of 3 live Crossref searches, the row was UNCONFIRMED ("No ma
 2. Comparison of Regularization Methods for ImageNet Classification with Deep Convolutional Neural Networks (DOI 10.1016/j.aasri.2014.05.013)
 3. Deep Convolutional Spiking Neural Networks for Image Classification (DOI 10.18122/td.1782.boisestate)
 
-The first is the real paper. Clicking it runs the check again for that title and DOI, which came back NO ISSUES FOUND. Crossref's search ranking can change, so the choices can differ on another day.
+The first is the real paper. Clicking it runs the check again for that title and DOI, which came back NO ISSUES FOUND.
 
 ## The five results
 
@@ -300,24 +294,21 @@ The first is the real paper. Clicking it runs the check again for that title and
 - **DOESN'T CHECK OUT.** The link goes to a different paper, or no registry has this DOI. It cannot be cited as written.
 - **CHECK FIRST.** A correction, expression of concern, or other notice is on record. Read it before citing.
 - **UNCONFIRMED.** The check did not finish: the title did not match one paper, the live lookup did not return, the paper is in a registry with no retraction data (for example arXiv), the line could not be read, or the item is not a paper.
-- **NO ISSUES FOUND.** A registry has a record and no retraction or correction was found. This does not check whether the paper's content fits your case, and it is not proof the paper is sound.
+- **NO ISSUES FOUND.** A registry has a record and no retraction or correction was found.
 
 ## Data
 
 | Source | What it is | Used for | Limits |
 |---|---|---|---|
-| Retraction Watch database (frozen copy) | Commit `fb5f174f8476824deaf340693f9a819ce5e29ded`, 2026-11-03. 73,597 notices: 68,155 retractions, 3,734 expressions of concern, 1,545 corrections, 163 reinstatements. SHA-256 `e5351ee51ab3f1da7fe98b3bd6c5c58049b8bff4705949ef6fd4f1a1315dd0ea`. CC0, distributed by Crossref | Notices, reasons and dates | Frozen on that date. Corrections and concerns are less complete than retractions. Loaded once when the process starts |
+| Retraction Watch database (frozen copy) | Commit `fb5f174f8476824deaf340693f9a819ce5e29ded`, 2026-11-03. 73,597 notices: 68,155 retractions, 3,734 expressions of concern, 1,545 corrections, 163 reinstatements. SHA-256 `e5351ee51ab3f1da7fe98b3bd6c5c58049b8bff4705949ef6fd4f1a1315dd0ea`. CC0, distributed by Crossref | Notices, reasons and dates | Frozen on that date. |
 | Crossref REST API (live) | Registry for most journal DOIs | Does the DOI exist, title, author, year, live update notices | Crossref distributes the Retraction Watch data and also serves these live lookups, so it is not an independent second source |
 | doi.org registration lookup (live) | Says which registry holds a DOI | Sends each DOI to Crossref or DataCite | |
 | DataCite API (live) | Registry for arXiv and similar | Confirms the paper exists | No retraction data |
-
-Abstracts are never stored or quoted. Reason text is the Retraction Watch token list as written.
 
 ## Known limits
 
 - "No issues found" means nothing was found in this data on this date. It is not a quality judgment.
 - Corrections and expressions of concern in the file are less complete than retractions.
-- With no DOI, the title is searched in Crossref and also compared with the Retraction Watch file. A Crossref result counts only when its title matches and any author or year you pasted agrees. A title can match a Retraction Watch row even when Crossref returns no paper. A slightly different title comes back UNCONFIRMED.
 - It checks that a paper exists and has no notice. It does not check whether the paper supports your argument.
 - The Retraction Watch copy is frozen at 2026-11-03. A later retraction shows only if Crossref's live data has it.
 - arXiv and other DataCite papers can be confirmed to exist but cannot be checked for retractions.
@@ -329,7 +320,7 @@ uv sync
 uv run app.py
 ```
 
-The local process binds `127.0.0.1:8000`. Cloud Run starts `uvicorn app:app --host 0.0.0.0 --port $PORT`. There is no API key and no Secret Manager. The model is `vertex_ai/gemini-3.5-flash-lite` in `vertex_location` `global`, from `config/config.json`, using the Cloud Run service account.
+The local process binds `127.0.0.1:8000`. Cloud Run starts `uvicorn app:app --host 0.0.0.0 --port $PORT`. The model is `vertex_ai/gemini-3.5-flash-lite` in `vertex_location` `global`, from `config/config.json`, using the Cloud Run service account.
 
 `GET /health` returns the row count and the commit. `POST /chat` takes `{"message", "session_id"}` and returns `response`, `session_id`, and `tool_calls`. Each tool call has `agent`, `name`, `args`, and `result` (a string). `POST /clear` drops one session. Sessions live in memory, so the service runs with max instances 1.
 
