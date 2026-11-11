@@ -626,6 +626,12 @@ const TOOL_SUMMARIES = {
     if (names) return `Planned a pattern lookup for ${plural(names, "name", "names")}.`;
     return args.action ? `Plan action: ${shortText(args.action, 40)}.` : "";
   },
+  submit_gap_plan(args, result) {
+    if (result.action === "done") return "Lead decided no more research was needed.";
+    const sent = Array.isArray(result.accepted) ? result.accepted.length : 0;
+    if (!sent) return "";
+    return `Lead found a gap and sent ${plural(sent, "more researcher", "more researchers")}.`;
+  },
   submit_extractions(args, result) {
     const items = Array.isArray(result.items) ? result.items : [];
     if (!items.length) return "";

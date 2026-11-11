@@ -17,6 +17,16 @@
     "model": "vertex_ai/gemini-3.5-flash-lite",
     "temperature": 0
   },
+  "gap_round": {
+    "enabled": false,
+    "max_tasks": 3,
+    "max_candidates": 5,
+    "researcher_tool_rounds": 2,
+    "lead_timeout_s": 20,
+    "researcher_timeout_s": 20,
+    "budget_s": 45,
+    "skip_after_s": 60
+  },
   "limits": {
     "max_research_rounds": 2,
     "max_tool_rounds": 8,
