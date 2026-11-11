@@ -273,21 +273,10 @@ function replaceCitation(source, pastedTitle, replacement) {
   return next.join("\n");
 }
 
-function textForCheck() {
-  const raw = question.value.trim();
-  if (!previewState.length) return raw;
-  const built = messageForPreview(previewEntries());
-  if (!built.ok || !built.message) return raw;
-  return built.message;
-}
-
 function useChoice(pastedTitle, option, source) {
   const replacement = choiceCitation(option);
-  const live = textForCheck();
-  const needle = foldText(pastedTitle);
   const stored = source == null ? "" : String(source);
-  const basis = needle && foldText(live).includes(needle) ? live : stored || live;
-  question.value = replaceCitation(basis, pastedTitle, replacement);
+  question.value = replaceCitation(stored, pastedTitle, replacement);
   clearTimeout(previewTimer);
   previewRequest += 1;
   clearPreview();
@@ -917,7 +906,15 @@ function failureCard(checked, text) {
   addResult(checked, node);
 }
 
+function clearInput() {
+  question.value = "";
+  clearTimeout(previewTimer);
+  previewRequest += 1;
+  clearPreview();
+}
+
 async function sendChat(message) {
+  const typed = question.value;
   if (run) run.disabled = true;
   startPending();
   try {
@@ -941,8 +938,12 @@ async function sendChat(message) {
     }
     sessionId = body.session_id || sessionId;
     clearPending();
-    addResult(message, renderAnswer(body.response || "No response.", body.tool_calls || [], message));
+    const text = body.response || "No response.";
+    addResult(message, renderAnswer(text, body.tool_calls || [], message));
     showTools(body.tool_calls || []);
+    if (!text.startsWith("Model call failed") && question.value === typed) {
+      clearInput();
+    }
   } catch (error) {
     clearPending();
     failureCard(message, "The audit request did not reach the server. Check the connection and try again.");
