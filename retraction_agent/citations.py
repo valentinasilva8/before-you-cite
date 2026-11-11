@@ -93,6 +93,10 @@ def units(text: str) -> list[str]:
         line = line.strip()
         if not line:
             continue
+        if line.count("|") >= 2:
+            # A markdown table row stays whole, so no cell is left over as a sentence with a stray "|".
+            chunks.append(line)
+            continue
         parts = re.split(r"(?<=[.!?])\s+", line)
         chunks.extend(part for part in parts if part)
     return chunks

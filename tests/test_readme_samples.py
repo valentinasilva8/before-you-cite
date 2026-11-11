@@ -23,7 +23,8 @@ def _shown(text: str) -> str:
 
 def test_readme_sample_prompts_match_the_chips():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    section = readme.split("## Samples", 1)[1].split("## Known limits", 1)[0]
+    section = readme.split("\n## Samples\n", 1)[1]
+    section = re.split(r"^## ", section, maxsplit=1, flags=re.MULTILINE)[0]
     headings = re.findall(r"^### \d+\. (.+)$", section, flags=re.MULTILINE)
     fences = re.findall(r"```\n(.*?)```", section, flags=re.DOTALL)
     prompts = list(PROMPTS.values())

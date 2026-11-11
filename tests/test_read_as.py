@@ -396,3 +396,131 @@ def test_clicking_a_title_fills_the_box(tmp_path):
     assert 'data-replaced="yes"' in dom
     assert 'data-ran="yes"' in dom
     assert 'data-same="yes"' in dom
+
+
+CLEAR_PAGE = """<!DOCTYPE html>
+<html lang="en">
+<body>
+  <span id="commit"><span id="when"></span> <span id="rows"></span></span>
+  <div id="samples"></div>
+  <form id="composer">
+    <textarea id="question"></textarea>
+    <button id="run" type="button" disabled>Run check</button>
+  </form>
+  <button id="clear" type="button">Clear</button>
+  <div id="preview" hidden><div id="preview-list"></div><p id="preview-truncated" hidden></p></div>
+  <div id="log"><p id="pending" hidden></p></div>
+  <div id="tools"></div>
+  <script>
+    const replies = [];
+    const sent = [];
+    window.fetch = (url, options) => {
+      const path = String(url);
+      if (path.indexOf("/chat") !== -1) {
+        sent.push(JSON.parse(options.body).message);
+        const next = replies.shift();
+        if (next === "network") return Promise.reject(new TypeError("Failed to fetch"));
+        return Promise.resolve({ ok: true, json: async () => ({ response: next, session_id: "s", tool_calls: [] }) });
+      }
+      return Promise.resolve({ ok: false, json: async () => ({}) });
+    };
+  </script>
+  <script src="app.js"></script>
+  <script>
+    const box = document.querySelector("#question");
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+    const kept = "Ada (2020). A paper that stays. https://doi.org/10.1000/keep";
+    const pasted = [kept, "short title", "other pasted title"].join("\\n");
+    const table = [
+      "| # | Verdict | What we found | What to do |",
+      "| --- | --- | --- | --- |",
+      "| 1 | NO ISSUES FOUND | Found it | Cite it |"
+    ].join("\\n");
+    const choices = [
+      "Confirm which title you meant. The choices are listed under the table.",
+      "",
+      table,
+      "",
+      "Query: short title",
+      "1. Longer title about damages",
+      "DOI: 10.1000/abc"
+    ].join("\\n");
+    (async () => {
+      box.value = "10.1000/keep";
+      renderPreview([{ raw: "10.1000/keep", title: "", authors: "", year: "", doi: "10.1000/keep", url: "", parsed_by: "rules", notes: [] }], false);
+      const shown = !document.querySelector("#preview").hidden && document.querySelectorAll("#preview-list input").length === 4;
+      replies.push(table);
+      document.querySelector("#run").click();
+      await flush();
+      const cleared = box.value === ""
+        && document.querySelector("#preview").hidden
+        && document.querySelectorAll("#preview-list input").length === 0
+        && document.querySelector("#run").disabled;
+      document.body.setAttribute("data-success", shown && cleared ? "yes" : "no");
+
+      box.value = "kept after a network error";
+      syncRun();
+      replies.push("network");
+      document.querySelector("#run").click();
+      await flush();
+      const afterNetwork = box.value === "kept after a network error";
+      box.value = "kept after a model failure";
+      syncRun();
+      replies.push("Model call failed: RuntimeError: boom");
+      document.querySelector("#run").click();
+      await flush();
+      const afterModel = box.value === "kept after a model failure" && !document.querySelector("#run").disabled;
+      document.body.setAttribute("data-failed", afterNetwork && afterModel ? "yes" : "no");
+
+      box.value = pasted;
+      syncRun();
+      replies.push(choices);
+      document.querySelector("#run").click();
+      await flush();
+      const emptyBefore = box.value === "";
+      const button = document.querySelector(".title-choice");
+      replies.push(table);
+      sent.length = 0;
+      button.click();
+      await flush();
+      const expected = [kept, '"Longer title about damages" https://doi.org/10.1000/abc', "other pasted title"].join("\\n");
+      const rerun = emptyBefore && sent.length === 1 && sent[0] === expected && box.value === "";
+      document.body.setAttribute("data-rerun", rerun ? "yes" : "no");
+      const copy = Array.from(document.querySelectorAll(".table-actions button")).map((item) => item.textContent);
+      document.body.setAttribute("data-actions", copy.includes("Copy report") && copy.includes("Download CSV") ? "yes" : "no");
+    })();
+  </script>
+</body>
+</html>
+"""
+
+
+def test_box_clears_after_a_check_and_keeps_text_on_failure(tmp_path):
+    assert CHROME, "google-chrome is required to run a check in the page"
+    (tmp_path / "app.js").write_text((ROOT / "frontend" / "app.js").read_text())
+    page = tmp_path / "clear.html"
+    page.write_text(CLEAR_PAGE)
+    completed = subprocess.run(
+        [
+            CHROME,
+            "--headless=new",
+            "--no-sandbox",
+            "--disable-gpu",
+            "--disable-dev-shm-usage",
+            "--no-first-run",
+            "--virtual-time-budget=5000",
+            f"--user-data-dir={tmp_path / 'chrome-profile'}",
+            "--dump-dom",
+            page.as_uri(),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert completed.returncode == 0, completed.stderr
+    dom = completed.stdout
+    assert 'data-success="yes"' in dom
+    assert 'data-failed="yes"' in dom
+    assert 'data-rerun="yes"' in dom
+    assert 'data-actions="yes"' in dom
