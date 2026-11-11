@@ -32,6 +32,9 @@ ORDER = (
     "NO ISSUES FOUND",
 )
 _WORD = re.compile(r"[a-z0-9]+")
+_FILLER = frozenset(
+    ("the", "of", "and", "a", "an", "in", "on", "for", "to", "with", "by", "from", "at", "as", "is", "are")
+)
 _INSTRUCTION = (
     "Do not ",
     "Say ",
@@ -101,7 +104,8 @@ def render_verdict_response(verdicts: list[dict]) -> str:
         lines.append(
             f"| {item['n']} | {_cell(_verdict_cell(item))} | {_cell(item['found'])} | {_cell(item['action'])} |"
         )
-    lines.extend(["", FOOTER])
+    if any(item.get("label") == "NO ISSUES FOUND" for item in verdicts):
+        lines.extend(["", FOOTER])
     return "\n".join(lines)
 
 
@@ -118,13 +122,13 @@ def labels_in(response: str) -> list[str]:
 
 
 def shares_half(query: str, title: str) -> bool:
-    """True when at least half of the candidate title's words appear in the pasted title."""
-    candidate = _words(title)
-    pasted = set(_words(query))
+    """True when at least half of the candidate's content words, and at least two, appear in the pasted title."""
+    candidate = _content_words(title)
+    pasted = set(_content_words(query))
     if not candidate or not pasted:
         return False
     shared = sum(1 for word in candidate if word in pasted)
-    return shared * 2 >= len(candidate)
+    return shared >= 2 and shared * 2 >= len(candidate)
 
 
 def no_similar_title_action(title: str) -> str:
@@ -598,6 +602,15 @@ def _json(call) -> dict:
 
 def _words(value: str) -> list[str]:
     return _WORD.findall(normalize_title(value))
+
+
+def _content_words(value: str) -> list[str]:
+    """Distinct words in order, without filler words."""
+    seen = []
+    for word in _words(value):
+        if word not in _FILLER and word not in seen:
+            seen.append(word)
+    return seen
 
 
 def _instruction(unit: str) -> bool:

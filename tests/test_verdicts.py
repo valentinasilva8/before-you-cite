@@ -10,6 +10,7 @@ from retraction_agent.verdicts import (
     FOOTER,
     build_verdicts,
     labels_in,
+    render_verdict_response,
     select_candidates,
     shares_half,
 )
@@ -68,7 +69,7 @@ def test_sample_four_verdicts_follow_the_readme_order():
     assert response.startswith("Confirm which title you meant. The choices are listed under the table.")
     assert "3 do not cite, 2 doesn't check out, 3 unconfirmed." in response
     assert "| # | Verdict | What we found | What to do |" in response
-    assert FOOTER in response
+    assert FOOTER not in response
     assert "Retraction Watch #70104." in response
     table_lines = [line for line in response.splitlines() if line.startswith("|")]
     assert table_lines
@@ -106,6 +107,23 @@ def test_sample_two_is_one_row_in_the_same_format():
     assert "Snapshot fb5f174f" in response
     data = [line for line in response.splitlines() if "NO ISSUES FOUND" in line]
     assert data and "snapshot" not in data[0].casefold()
+
+
+def test_a_do_not_cite_only_result_has_no_footer():
+    response = render_verdict_response(
+        [
+            {
+                "n": 1,
+                "label": "DO NOT CITE",
+                "reason": "Retraction on record",
+                "found": "The retraction is dated 2026-02-25. Retraction Watch #70104.",
+                "action": "Leave it out of your bibliography.",
+            }
+        ]
+    )
+    assert labels_in(response) == ["DO NOT CITE"]
+    assert FOOTER not in response
+    assert "No issues found never means" not in response
 
 
 def test_final_responses_omit_instructions_and_tool_names():
@@ -183,6 +201,15 @@ def test_title_candidates_need_half_their_words_and_stop_at_three():
     candidates.append({"title": far, "doi": "10.1000/far"})
     picked = select_candidates(query, candidates)
     assert [item["doi"] for item in picked] == ["10.1000/c0", "10.1000/c1", "10.1000/c2"]
+
+
+def test_filler_words_and_one_shared_word_do_not_make_a_similar_title():
+    query = "Modeling Geometry and Semantics of Physical Damages"
+    assert not shares_half(query, "The Semantics of Verbs")
+    assert not shares_half(query, "What Is Semantics?")
+    assert not shares_half(query, "Modeling Meanings in Robots and in the Semantic Web")
+    assert shares_half(query, "Modeling Geometry and Semantics of Physical Damages using IFC")
+    assert shares_half(query, "Geometry of Physical Damages")
 
 
 def test_a_distant_title_is_not_offered_for_confirmation():
@@ -279,8 +306,11 @@ def test_frontend_renders_a_table_and_hides_the_tool_log():
     assert 'class="how"' not in html
     assert "<summary>How it works</summary>" not in html
     assert 'class="info-boxes"' in html
-    for title in ("What it checks", "Who it is for", "How to use it"):
-        assert title in html
+    titles = re.findall(r"<h2>([^<]+)</h2>", html.split('class="info-boxes"', 1)[1].split("</section>", 1)[0])
+    assert titles == ["What it checks", "What the results mean"]
+    assert "Who it is for" not in html
+    assert "How to use it</h2>" not in html
+    assert ".info-box:nth-child(3)" not in css
     assert "Read as" in js
     assert "not found in your paste" in js
     assert "parsed_references" in js
@@ -288,9 +318,10 @@ def test_frontend_renders_a_table_and_hides_the_tool_log():
     assert "escapeHtml" in js
     assert "textContent" in js
     assert "innerHTML" not in js.split("function renderAnswer")[1].split("function showTools")[0]
-    for name in ("chip-red", "chip-amber", "chip-grey", "chip-blue"):
+    for name in ("chip-red", "chip-orange", "chip-amber", "chip-grey", "chip-blue"):
         assert name in js
         assert name in css
+        assert name in html
     assert "green" not in css.casefold()
     assert "not proof the paper is sound" in html
     assert 'id="send"' not in html
@@ -309,21 +340,21 @@ def test_frontend_renders_a_table_and_hides_the_tool_log():
 def test_what_it_checks_keeps_only_the_verified_lines():
     html = (ROOT / "frontend" / "index.html").read_text()
     box = html.split("<h2>What it checks</h2>", 1)[1].split("</article>", 1)[0]
-    for line in ("Does it exist?", "Was it retracted or corrected?", "How we read your paste"):
-        assert line in box
+    assert box.count("<p>") == 3
+    for line in ("Does it exist?", "Retracted or corrected?", "How we read your paste."):
+        assert f"<strong>{line}</strong>" in box
     for phrase in (
-        "doi.org",
-        "DataCite",
-        "exact title match",
-        "first author and year must agree",
-        "does not check out",
-        "Retraction Watch",
-        "update-to",
-        "before Run check",
+        "Crossref and DataCite",
+        "search Crossref by title",
+        "compare the title with the Retraction Watch file",
+        "Crossref's live notices",
+        "before you run the check",
+        "no clear Author (Year). Title. shape",
         "can only copy text you pasted",
         "UNCONFIRMED, not skipped",
     ):
         assert phrase in box
+    assert "exact title match" not in box
     assert "This paper exists" not in html
     assert "A registry has a record" in html
 
@@ -465,6 +496,10 @@ def test_legend_covers_every_headline_and_hides_the_old_ones():
     js = (ROOT / "frontend" / "app.js").read_text()
     for label in ORDER:
         assert label in html
+    legend = html.split('<ul class="legend">', 1)[1].split("</ul>", 1)[0]
+    chips = re.findall(r'<span class="chip (chip-[a-z]+)">([^<]+)</span>', legend)
+    assert [label.replace("&#39;", "'") for _cls, label in chips] == list(ORDER)
+    assert [cls for cls, _label in chips] == ["chip-red", "chip-orange", "chip-amber", "chip-grey", "chip-blue"]
     retired = (
         "WRONG LINK",
         "WRONG KIND OF LINK",

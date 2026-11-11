@@ -14,7 +14,8 @@
   "llm_fallback": {
     "enabled": true,
     "max_lines": 25,
-    "model": "vertex_ai/gemini-3.5-flash-lite"
+    "model": "vertex_ai/gemini-3.5-flash-lite",
+    "temperature": 0
   },
   "limits": {
     "max_research_rounds": 2,

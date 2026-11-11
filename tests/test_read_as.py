@@ -157,6 +157,108 @@ def test_read_as_line_renders_and_escapes_html(tmp_path):
     assert "<img src=x onerror=alert(1)>" not in dom
 
 
+DOI_ONLY_PAGE = """<!DOCTYPE html>
+<html lang="en">
+<body>
+  <span id="commit"><span id="when"></span> <span id="rows"></span></span>
+  <div id="samples"></div>
+  <p id="pending" hidden></p>
+  <form id="composer"><textarea id="question"></textarea></form>
+  <button id="run" type="button">Run check</button>
+  <button id="clear" type="button">Clear</button>
+  <button id="try-doi" type="button">Reference with DOI</button>
+  <div id="preview" hidden><div id="preview-list"></div><p id="preview-truncated" hidden></p></div>
+  <div id="log"></div>
+  <div id="tools"></div>
+  <script>
+    window.fetch = (url) => {
+      const path = String(url);
+      if (path.indexOf("/health") !== -1) {
+        return Promise.resolve({ ok: true, json: async () => ({ commit_short: "fb5f174f", committed_at: "2026-11-03", rows: 73597 }) });
+      }
+      if (path.indexOf("/samples") !== -1) {
+        return Promise.resolve({ ok: true, json: async () => ({ prompts: { doi_link: "first prompt", reference_with_doi: "the doi prompt" } }) });
+      }
+      return Promise.resolve({ ok: false, json: async () => ({}) });
+    };
+  </script>
+  <script src="app.js"></script>
+  <script>
+    const table = [
+      "| # | Verdict | What we found | What to do |",
+      "| --- | --- | --- | --- |",
+      "| 1 | DO NOT CITE | Found it | Leave it out |",
+      "| 2 | DO NOT CITE | Found it | Leave it out |"
+    ].join("\\n");
+    const calls = [{
+      agent: "(harness)",
+      name: "parsed_references",
+      args: {},
+      result: JSON.stringify([
+        { raw: "https://doi.org/10.3390/nano10122325", title: "", authors: "", year: "", doi: "10.3390/nano10122325", url: "", parsed_by: "rules", notes: [] },
+        { raw: "A title only line here", title: "A title only line here", authors: "", year: "", doi: "", url: "", parsed_by: "ai", notes: [] }
+      ])
+    }];
+    const node = renderAnswer(table, calls);
+    document.body.appendChild(node);
+    const lines = node.querySelectorAll(".read-as");
+    const doiLine = lines[0] ? lines[0].textContent : "";
+    const titleLine = lines[1] ? lines[1].textContent : "";
+    document.body.setAttribute("data-doi-only", (
+      doiLine.includes("DOI 10.3390/nano10122325")
+      && doiLine.includes("Only a DOI was pasted.")
+      && doiLine.includes("rules")
+      && !doiLine.includes("not found in your paste")
+      && !doiLine.includes("Title")
+    ) ? "yes" : "no");
+    document.body.setAttribute("data-partial", (
+      titleLine.includes("A title only line here")
+      && titleLine.includes("not found in your paste")
+      && titleLine.includes("ai")
+      && !titleLine.includes("Only a DOI was pasted.")
+    ) ? "yes" : "no");
+    const chip = document.querySelector('#samples button[data-key="reference_with_doi"]');
+    document.querySelector("#try-doi").click();
+    document.body.setAttribute("data-try", chip && document.querySelector("#question").value === "the doi prompt" ? "yes" : "no");
+    const meta = document.querySelector("#commit").title === "Retraction Watch snapshot fb5f174f"
+      && document.querySelector("#rows").textContent === "73,597 notices";
+    document.body.setAttribute("data-meta", meta ? "yes" : "no");
+  </script>
+</body>
+</html>
+"""
+
+
+def test_doi_only_read_as_and_the_try_link(tmp_path):
+    assert CHROME, "google-chrome is required to render the Read as line"
+    (tmp_path / "app.js").write_text((ROOT / "frontend" / "app.js").read_text())
+    page = tmp_path / "doi-only.html"
+    page.write_text(DOI_ONLY_PAGE)
+    completed = subprocess.run(
+        [
+            CHROME,
+            "--headless=new",
+            "--no-sandbox",
+            "--disable-gpu",
+            "--disable-dev-shm-usage",
+            "--no-first-run",
+            f"--user-data-dir={tmp_path / 'chrome-profile'}",
+            "--dump-dom",
+            page.as_uri(),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert completed.returncode == 0, completed.stderr
+    dom = completed.stdout
+    assert 'data-doi-only="yes"' in dom
+    assert 'data-partial="yes"' in dom
+    assert 'data-try="yes"' in dom
+    assert 'data-meta="yes"' in dom
+
+
 CHOICE_PAGE = """<!DOCTYPE html>
 <html lang="en">
 <body>

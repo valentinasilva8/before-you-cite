@@ -4,19 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Before You Cite</title>
-  <link rel="stylesheet" href="/static/styles.css?v=10">
+  <link rel="stylesheet" href="/static/styles.css?v=11">
 </head>
 <body>
   <header class="top">
     <div>
       <p class="eyebrow">Retraction audit</p>
       <h1>Before You Cite</h1>
+      <p class="lede">Got a reference from ChatGPT or another chatbot? Check that it exists and has not been retracted before you cite it.</p>
     </div>
     <div class="snapshot" id="snapshot">
-      <span class="label">Extract</span>
-      <strong id="commit">fb5f174f</strong>
-      <span id="when">2026-11-03</span>
-      <span id="rows">73,597 notice rows</span>
+      <span id="commit" title="Retraction Watch snapshot fb5f174f">Retraction Watch data <span id="when">2026-11-03</span> · <span id="rows">73,597 notices</span></span>
     </div>
   </header>
 
@@ -24,27 +22,30 @@
     <article class="info-box">
       <h2>What it checks</h2>
       <div class="checks">
-        <p><strong>Does it exist?</strong> A DOI is checked at Crossref, then doi.org, and the record is read from Crossref or DataCite. With no DOI, Crossref accepts only an exact title match, and a pasted first author and year must agree. If they agree, it counts as found. A difference means the link does not check out.</p>
-        <p><strong>Was it retracted or corrected?</strong> The dated Retraction Watch file (top right) and Crossref's live updated-by and update-to notices, covering retractions, corrections, and expressions of concern.</p>
-        <p><strong>How we read your paste.</strong> Fixed rules show the title, authors, year, and DOI so you can correct them before Run check. An AI model runs only when the rules cannot read a line, and it can only copy text you pasted. A line nobody can read is marked UNCONFIRMED, not skipped.</p>
+        <p><strong>Does it exist?</strong> We look up the DOI at Crossref and DataCite. With no DOI, we search Crossref by title and also compare the title with the Retraction Watch file.</p>
+        <p><strong>Retracted or corrected?</strong> We check the dated Retraction Watch file and Crossref's live notices for retractions, corrections and expressions of concern.</p>
+        <p><strong>How we read your paste.</strong> Fixed rules read each line and show you the result before you run the check. When you run the check, an AI reader reads only lines with no DOI and no clear Author (Year). Title. shape, and it can only copy text you pasted. A citation line that cannot be read, such as a numbered line or one with a year in brackets, is marked UNCONFIRMED, not skipped.</p>
       </div>
     </article>
     <article class="info-box">
-      <h2>Who it is for</h2>
-      <p>You got a reference from ChatGPT or another chatbot and you want to know if you can cite it.</p>
-    </article>
-    <article class="info-box how-to">
-      <h2>How to use it</h2>
-      <p>Paste what the chatbot wrote, including the link. Up to 25. A DOI is the paper's permanent ID. It looks like 10.1038/nature14539. A normal link works too.</p>
+      <h2>What the results mean</h2>
       <ul class="legend">
         <li><span class="chip chip-red">DO NOT CITE</span><span>A retraction is on record, or the link you pasted is the retraction notice.</span></li>
-        <li><span class="chip chip-amber">DOESN'T CHECK OUT</span><span>The link goes to a different paper, or no registry has this DOI. It cannot be cited as written.</span></li>
+        <li><span class="chip chip-orange">DOESN'T CHECK OUT</span><span>The link goes to a different paper, or no registry has this DOI.</span></li>
         <li><span class="chip chip-amber">CHECK FIRST</span><span>A correction, expression of concern or other notice is on record. Read it before citing.</span></li>
-        <li><span class="chip chip-grey">UNCONFIRMED</span><span>We could not complete the check. Either we could not match it to a registry record (we search Crossref by title and accept only an exact match, so a slightly different title fails), or the live lookup did not return, or the paper exists in a registry that has no retraction data (such as arXiv), or it is not a paper. Check it yourself.</span></li>
-        <li><span class="chip chip-blue">NO ISSUES FOUND</span><span>A registry has a record for the paper and we found no retraction or correction. We did not check whether the paper's content is relevant to your case, and this is not proof the paper is sound.</span></li>
+        <li><span class="chip chip-grey">UNCONFIRMED</span><span>The check did not finish. The row says why, for example a title that did not match one paper, a registry with no retraction data such as arXiv, or a line that is not a paper.</span></li>
+        <li><span class="chip chip-blue">NO ISSUES FOUND</span><span>A registry has a record and we found no retraction or correction. This is not proof the paper is sound, and we did not check whether it is relevant to your case.</span></li>
       </ul>
-      <p class="legend-try">Try Reference with DOI to see a source with no issues found.</p>
     </article>
+  </section>
+
+  <section class="steps" aria-label="How to use it">
+    <ol>
+      <li><span class="step-n">1</span><span>Paste what the chatbot wrote, including the link (up to 25). A DOI is the paper's permanent ID, like 10.1038/nature14539.</span></li>
+      <li><span class="step-n">2</span><span>Check how each line was read.</span></li>
+      <li><span class="step-n">3</span><span>Run check.</span></li>
+    </ol>
+    <p class="steps-try">Try <button type="button" id="try-doi" class="link-button">Reference with DOI</button> to see a source with no issues found.</p>
   </section>
 
   <main>
@@ -78,6 +79,6 @@
   <footer>
     <p>Retraction Watch database via Crossref, CC0. Crossref REST calls use a polite mailto and do not store abstracts. Publisher strings are quoted as the file and as Crossref wrote them.</p>
   </footer>
-  <script src="/static/app.js?v=10"></script>
+  <script src="/static/app.js?v=11"></script>
 </body>
 </html>

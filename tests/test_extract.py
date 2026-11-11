@@ -47,6 +47,28 @@ def test_fallback_settings_come_from_config():
     assert settings["enabled"] is True
     assert settings["max_lines"] == 25
     assert settings["model"] == "vertex_ai/gemini-3.5-flash-lite"
+    assert settings["temperature"] == 0
+
+
+def test_the_extractor_call_sends_the_configured_temperature(monkeypatch):
+    from retraction_agent import extract
+
+    sent = {}
+
+    class _Choice:
+        message = Reply("done")
+
+    class _Response:
+        choices = [_Choice()]
+
+    def fake_completion(**kwargs):
+        sent.update(kwargs)
+        return _Response()
+
+    monkeypatch.setattr(extract.litellm, "completion", fake_completion)
+    extract.fallback_complete([{"role": "user", "content": "x"}], extract.EXTRACT_TOOLS)
+    assert sent["temperature"] == 0
+    assert sent["model"] == "vertex_ai/gemini-3.5-flash-lite"
 
 
 def test_bare_doi_is_one_confident_reference():
@@ -60,7 +82,15 @@ def test_good_extraction_copies_the_pasted_title():
     refs, calls = _apply(PASTED, [_item(0, title=PASTED.rstrip("."))])
     assert refs == [{"title": PASTED.rstrip("."), "parsed_by": "llm"}]
     assert calls[0]["agent"] == "citation-extractor"
-    assert json.loads(calls[0]["result"])["parsed_by"] == "llm"
+    result = json.loads(calls[0]["result"])
+    assert result["parsed_by"] == "llm"
+    assert result["items"][0]["passed_copy_check"] is True
+    assert "accepted" not in result["items"][0]
+
+
+def test_a_rejected_line_does_not_pass_the_copy_check():
+    _refs, calls = _apply(PASTED, [_item(0, title="An invented title that is not in the line")])
+    assert json.loads(calls[0]["result"])["items"][0]["passed_copy_check"] is False
 
 
 def test_a_model_that_corrects_a_title_is_rejected():

@@ -438,10 +438,18 @@ function readAsLine(reading) {
   label.className = "read-label";
   label.textContent = "Read as";
   line.appendChild(label);
-  line.appendChild(readField("Title", reading.title));
-  line.appendChild(readField("Authors", reading.authors));
-  line.appendChild(readField("Year", reading.year));
-  line.appendChild(readField("DOI", reading.doi));
+  if (doiOnly(reading)) {
+    line.appendChild(readField("DOI", reading.doi));
+    const only = document.createElement("span");
+    only.className = "read-only-doi";
+    only.textContent = "Only a DOI was pasted.";
+    line.appendChild(only);
+  } else {
+    line.appendChild(readField("Title", reading.title));
+    line.appendChild(readField("Authors", reading.authors));
+    line.appendChild(readField("Year", reading.year));
+    line.appendChild(readField("DOI", reading.doi));
+  }
   if (reading.parsed_by) {
     const badge = document.createElement("span");
     badge.className = "read-badge";
@@ -458,6 +466,14 @@ function readAsLine(reading) {
     }
   }
   return line;
+}
+
+function filled(value) {
+  return value != null && String(value).trim() !== "";
+}
+
+function doiOnly(reading) {
+  return !filled(reading.title) && !filled(reading.authors) && !filled(reading.year) && filled(reading.doi);
 }
 
 function readField(name, value) {
@@ -533,7 +549,10 @@ function chipClass(label) {
   if (label === "DO NOT CITE") {
     return "chip-red";
   }
-  if (label === "DOESN'T CHECK OUT" || label === "CHECK FIRST") {
+  if (label === "DOESN'T CHECK OUT") {
+    return "chip-orange";
+  }
+  if (label === "CHECK FIRST") {
     return "chip-amber";
   }
   if (label === "NO ISSUES FOUND") {
@@ -579,11 +598,11 @@ async function loadMeta() {
     const health = await fetch("/health");
     const body = await health.json();
     healthMeta = { short: body.commit_short || body.commit || "", rows: body.rows };
-    document.querySelector("#commit").textContent = healthMeta.short;
+    document.querySelector("#commit").title = `Retraction Watch snapshot ${healthMeta.short}`;
     document.querySelector("#when").textContent = (body.committed_at || "").slice(0, 10);
-    document.querySelector("#rows").textContent = `${Number(body.rows).toLocaleString("en-US")} notice rows`;
+    document.querySelector("#rows").textContent = `${Number(body.rows).toLocaleString("en-US")} notices`;
   } catch (error) {
-    document.querySelector("#rows").textContent = "Extract did not load";
+    document.querySelector("#rows").textContent = "Data did not load";
   }
   try {
     const response = await fetch("/samples");
@@ -592,6 +611,7 @@ async function loadMeta() {
     for (const [key, prompt] of Object.entries(body.prompts || {})) {
       const button = document.createElement("button");
       button.type = "button";
+      button.dataset.key = key;
       button.textContent = labels[key] || key;
       button.addEventListener("click", () => {
         question.value = prompt;
@@ -653,6 +673,14 @@ question.addEventListener("keydown", (event) => {
 
 if (run) {
   run.addEventListener("click", runCheck);
+}
+
+const tryDoi = document.querySelector("#try-doi");
+if (tryDoi) {
+  tryDoi.addEventListener("click", () => {
+    const chip = samples.querySelector('button[data-key="reference_with_doi"]');
+    if (chip) chip.click();
+  });
 }
 
 document.querySelector("#clear").addEventListener("click", async () => {

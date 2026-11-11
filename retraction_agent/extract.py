@@ -87,10 +87,15 @@ def fallback_settings() -> dict:
         max_lines = int(raw.get("max_lines") or 25)
     except (TypeError, ValueError):
         max_lines = 25
+    try:
+        temperature = float(raw["temperature"]) if raw.get("temperature") is not None else None
+    except (TypeError, ValueError):
+        temperature = None
     return {
         "enabled": bool(raw.get("enabled", False)),
         "max_lines": max(1, max_lines),
         "model": raw.get("model") or config["model"],
+        "temperature": temperature,
     }
 
 
@@ -105,6 +110,8 @@ def fallback_complete(messages: list[dict], tools: list | None):
         "timeout": 45,
         "_skip_mcp_handler": True,
     }
+    if settings["temperature"] is not None:
+        kwargs["temperature"] = settings["temperature"]
     if tools:
         kwargs["tools"] = tools
     return litellm.completion(**kwargs).choices[0].message
@@ -214,7 +221,7 @@ def _one_call(sent: list[tuple[int, str]], complete_fn):
                 "items": [
                     {
                         "raw_line_index": index,
-                        "accepted": validated[index] is not None and not validated[index].get("unparsed"),
+                        "passed_copy_check": validated[index] is not None and not validated[index].get("unparsed"),
                         "parsed_by": "llm",
                     }
                     for index, _line in sent
