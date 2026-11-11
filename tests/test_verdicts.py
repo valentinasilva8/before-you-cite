@@ -10,6 +10,7 @@ from retraction_agent.verdicts import (
     FOOTER,
     build_verdicts,
     labels_in,
+    prose_notes,
     render_verdict_response,
     select_candidates,
     shares_half,
@@ -107,6 +108,31 @@ def test_sample_two_is_one_row_in_the_same_format():
     assert "Snapshot fb5f174f" in response
     data = [line for line in response.splitlines() if "NO ISSUES FOUND" in line]
     assert data and "snapshot" not in data[0].casefold()
+
+
+def test_a_writer_table_row_leaves_no_stray_pipe_in_the_notes():
+    row = (
+        "| 1 | UNCONFIRMED. | Retraction Watch found no record for this title in snapshot fb5f174f. "
+        "| Paste the full title |"
+    )
+    assert prose_notes(row) == ""
+    assert prose_notes(row + "\nSnapshot fb5f174f. No record is a data limit.") == (
+        "Snapshot fb5f174f. No record is a data limit."
+    )
+    result = handle_turn(
+        {"messages": []},
+        SAMPLE_2,
+        complete_fn=scripted_complete(row + "\nNo record is a data limit."),
+        catalog=get_catalog(),
+        crossref=FakeCrossref(),
+    )
+    response = result["response"]
+    assert labels_in(response) == ["NO ISSUES FOUND"]
+    assert "Retraction Watch found no record for this title" not in response
+    assert response.rstrip().endswith("No record is a data limit.")
+    table = response.split("| # | Verdict |", 1)[1]
+    after = table.split("\n\n", 1)[1]
+    assert "|" not in after
 
 
 def test_a_do_not_cite_only_result_has_no_footer():
