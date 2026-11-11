@@ -266,7 +266,7 @@ Magnetic Ionic Liquid Nanocatalyst to Improve Mechanical and Thermal Properties 
 10.3390/nano10122325
 ```
 
-What I saw on 2026-11-10, in 3 of 3 runs: the page says "2 checked: 2 do not cite". Row 1 (the title only) shows the ai badge, and its Read as line shows authors, year and DOI as "not found in your paste". Row 2 (the DOI) shows the rules badge. Both rows are DO NOT CITE, Retraction Watch #70104. The two rows are the same paper on purpose.
+The page says "2 checked: 2 do not cite". Row 1 (the title only) shows the ai badge, and its Read as line shows authors, year and DOI as "not found in your paste". Row 2 (the DOI) shows the rules badge. Both rows are DO NOT CITE, Retraction Watch #70104. The two rows are the same paper on purpose.
 
 The AI reader turned a bare title into a checkable citation, and the verdict comes from the registry data, not from the AI.
 
@@ -280,7 +280,7 @@ When a title has no DOI and does not match one paper, the page lists up to three
 Krizhevsky, A. (2017). ImageNet classification with deep convolutional networks.
 ```
 
-On 2026-11-10, in 3 of 3 live Crossref searches, the row was UNCONFIRMED ("No matching record found") and the same three choices were offered under the table, in this order:
+In 3 of 3 live Crossref searches, the row was UNCONFIRMED ("No matching record found") and the same three choices were offered under the table, in this order:
 
 1. ImageNet classification with deep convolutional neural networks (DOI 10.1145/3065386)
 2. Comparison of Regularization Methods for ImageNet Classification with Deep Convolutional Neural Networks (DOI 10.1016/j.aasri.2014.05.013)
