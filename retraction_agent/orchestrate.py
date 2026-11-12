@@ -10,7 +10,10 @@ from concurrent.futures import TimeoutError as FutureTimeout
 from retraction_agent import gaps
 from retraction_agent.citations import (
     CONFIRM_NOTE,
+    RATE_NOTE,
+    asks_for_rate,
     confirmation_question,
+    drop_rate_claims,
     enforce_citations,
     grounded_fallback,
 )
@@ -91,6 +94,7 @@ def handle_turn(session: dict, message: str, *, complete_fn=None, catalog=None, 
         session["corpus"].extend(fresh)
         references = plan.get("references") or []
         named = bool(plan.get("journals") or plan.get("publishers"))
+        rate_note = not references and asks_for_rate(message)
         publisher_text = _top_publishers_text(tool_calls) if plan.get("top_publishers") else ""
         only_top = bool(publisher_text) and not references and not named
         if only_top:
@@ -122,6 +126,8 @@ def handle_turn(session: dict, message: str, *, complete_fn=None, catalog=None, 
                 if entry:
                     tool_calls.append(entry)
             else:
+                checked, dropped_rate = drop_rate_claims(checked)
+                rate_note = rate_note or dropped_rate
                 response = prose_notes(checked, limit=None)
                 if not response:
                     response = prose_notes(grounded_fallback(tool_calls, catalog.commit_short), limit=None)
@@ -138,6 +144,8 @@ def handle_turn(session: dict, message: str, *, complete_fn=None, catalog=None, 
             else:
                 extra = response.strip()
                 response = f"{publisher_text}\n\n{extra}" if extra else publisher_text
+        if rate_note and RATE_NOTE not in response:
+            response = f"{response.rstrip()}\n\n{RATE_NOTE}".strip()
         session["messages"].append({"role": "assistant", "content": response})
         session["pack_summary"] = _summary(tool_calls, pending)
         return {"response": response, "tool_calls": tool_calls}
