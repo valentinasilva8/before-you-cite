@@ -5,6 +5,7 @@ import re
 import pytest
 
 from retraction_agent.catalog import get_catalog
+from retraction_agent.citations import RATE_NOTE
 from retraction_agent.orchestrate import _format_top_publishers, handle_turn
 from retraction_agent.identity import EXISTS_NO_INTEGRITY
 from retraction_agent.planning import names_only_a_person, parse_references
@@ -155,6 +156,39 @@ def test_a_topic_question_gets_the_lead_question_not_the_name_refusal(message):
 @pytest.mark.parametrize("message", ["Check Ayman M Atta", "Is John Smith retracted?", "Check John Smith"])
 def test_a_person_name_still_gets_the_name_refusal(message):
     assert names_only_a_person(message)
+
+
+def _publisher_turn(message, draft):
+    def complete(messages, tools):
+        system = messages[0]["content"]
+        if system.startswith("You are the lead"):
+            return Reply("", [ToolCall("submit_plan", {"action": "dispatch", "publishers": ["Hindawi"]})])
+        if system.startswith("You are the writer"):
+            return Reply(draft)
+        return Reply("done")
+
+    return handle_turn({"messages": []}, message, complete_fn=complete, catalog=get_catalog(), crossref=FakeCrossref())
+
+
+def test_a_rate_question_gets_the_fixed_note_and_no_invented_rate():
+    result = _publisher_turn(
+        "What is the retraction rate of Hindawi?",
+        "Hindawi has 11,524 notice rows. Hindawi has a retraction rate of 3 percent.",
+    )
+    assert "3 percent" not in result["response"]
+    assert "11,524" in result["response"]
+    assert result["response"].endswith(RATE_NOTE)
+
+
+def test_an_unasked_percent_is_dropped_and_explained():
+    result = _publisher_turn("How many notices does Hindawi have?", "Hindawi has 11,524 notice rows, 15% of the extract.")
+    assert "15%" not in result["response"]
+    assert result["response"] == RATE_NOTE
+
+
+def test_a_count_question_without_rates_gets_no_rate_note():
+    result = _publisher_turn("How many notices does Hindawi have?", "Hindawi has 11,524 notice rows.")
+    assert result["response"] == "Hindawi has 11,524 notice rows."
 
 
 def test_casefold_journal_is_the_second_research_round():

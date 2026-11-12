@@ -28,6 +28,16 @@ _STATUS = re.compile(
     re.IGNORECASE,
 )
 _GUESS_EXCEPTION = re.compile(r"not confirmed|not an exact|not cited|do not cite|candidate", re.IGNORECASE)
+_RATE_WORD = r"\b(?:rates?|percent(?:ages?)?)\b"
+_RATE_ASKED = re.compile(_RATE_WORD + r"|%", re.IGNORECASE)
+_RATE_NEGATED = re.compile(r"\b(?:not|no|never|without|don't)\b[^.?!\n]{0,30}?" + _RATE_WORD, re.IGNORECASE)
+_RATE_FIGURE = re.compile(r"\bpercent|%", re.IGNORECASE)
+_RATE_OF = re.compile(r"\brate of\b", re.IGNORECASE)
+_NOT_A_RATE = re.compile(r"\bnot (?:a |the )?rates?\b|\bno rate\b|cannot give a rate", re.IGNORECASE)
+
+RATE_NOTE = (
+    "The extract counts retraction notices only. It has no count of all papers published, so it cannot give a rate."
+)
 
 
 def corpus_from(results: list[str], snapshot: str) -> dict:
@@ -132,6 +142,25 @@ def commit_ok(token: str, corpus: dict) -> bool:
     if snapshot.startswith(token) or token.startswith(short):
         return short in corpus["text"] or snapshot in corpus["text"]
     return False
+
+
+def asks_for_rate(message: str) -> bool:
+    """True when the user asks for a rate or percent. "Do not compute a rate" is not asking."""
+    return bool(_RATE_ASKED.search(_RATE_NEGATED.sub(" ", message or "")))
+
+
+def drop_rate_claims(answer: str) -> tuple[str, bool]:
+    """Drop sentences with a percent or a "rate of" figure. A sentence saying it is not a rate stays."""
+    kept = []
+    dropped = False
+    for unit in units(answer):
+        if _RATE_FIGURE.search(unit) or (_RATE_OF.search(unit) and not _NOT_A_RATE.search(unit)):
+            dropped = True
+            continue
+        kept.append(unit)
+    if not dropped:
+        return answer, False
+    return "\n".join(kept).strip(), True
 
 
 def quality_problem(answer: str) -> bool:

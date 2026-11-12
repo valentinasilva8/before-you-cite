@@ -1,4 +1,15 @@
-from retraction_agent.citations import CONFIRM_NOTE, confirmation_question, corpus_from, enforce_citations, strip_units
+import pytest
+
+from retraction_agent.citations import (
+    CONFIRM_NOTE,
+    asks_for_rate,
+    confirmation_question,
+    corpus_from,
+    drop_rate_claims,
+    enforce_citations,
+    strip_units,
+)
+from retraction_agent.samples import PROMPTS
 
 SNAPSHOT = "fb5f174f8476824deaf340693f9a819ce5e29ded"
 RESULTS = [
@@ -45,6 +56,47 @@ def test_retraction_watch_number_not_in_results_is_dropped():
 def test_year_after_retraction_watch_is_not_a_record_id():
     text = strip_units("The Retraction Watch 2026 extract has a notice for this DOI.", corpus_from(RESULTS, SNAPSHOT), [])
     assert "2026" in text
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "What is the retraction rate of Hindawi?",
+        "What percent of Elsevier papers are retracted?",
+        "Which journal has the highest retraction rate?",
+        "Is 2% of PLoS One retracted?",
+    ],
+)
+def test_a_rate_question_asks_for_a_rate(message):
+    assert asks_for_rate(message)
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        PROMPTS["publisher_question"],
+        'How many retraction notices does the publisher "Springer Nature" have in the extract? Do not compute a rate.',
+        "Which publishers have the most notice rows? I don't want rates.",
+        "Has 10.1038/s41586-021-03819-2 been retracted or corrected?",
+        "Can you generate an accurate count for Hindawi?",
+    ],
+)
+def test_saying_not_a_rate_is_not_asking_for_one(message):
+    assert not asks_for_rate(message)
+
+
+def test_rate_claims_are_dropped_and_not_a_rate_stays():
+    text, dropped = drop_rate_claims(
+        "Hindawi has 11,524 notice rows. Hindawi has a retraction rate of 3 percent. "
+        "That is 15% of the extract. The rate of retraction for Hindawi is high. This is not a rate."
+    )
+    assert dropped
+    assert text == "Hindawi has 11,524 notice rows.\nThis is not a rate."
+
+
+def test_an_answer_without_rate_claims_is_unchanged():
+    answer = "PLoS One has 1680 notice rows in snapshot fb5f174f.\nThese are notice counts, not rates."
+    assert drop_rate_claims(answer) == (answer, False)
 
 
 def test_data_limit_sentence_is_kept():
