@@ -7,6 +7,10 @@ from retraction_agent.normalize import normalize_doi
 
 _DOI = re.compile(r"10\.\d{4,9}/[^\s)\]>,;\"']+", re.IGNORECASE)
 _RECORD = re.compile(r"\brecord(?:\s+id)?\s*[:#]?\s*(\d{3,8})\b", re.IGNORECASE)
+_RW = r"\bretraction\s+watch(?:\s+(?:record|entry|id|number|no\.?))?"
+_RW_MARKED = re.compile(_RW + r"\s*[:#]\s*(\d{3,8})\b", re.IGNORECASE)
+# Without a "#" or ":" a four-digit number after "Retraction Watch" is more likely a year than a record id.
+_RW_BARE = re.compile(_RW + r"\s+(\d{5,8})\b", re.IGNORECASE)
 _COMMIT = re.compile(r"\b[0-9a-f]{8,40}\b", re.IGNORECASE)
 _QUALITY = re.compile(
     r"\b(the paper is fine|this paper is fine|the work is fine|safe to cite|\bsafe\b|"
@@ -112,7 +116,8 @@ def dois_in(text: str) -> list[str]:
 
 
 def records_in(text: str) -> list[str]:
-    return _RECORD.findall(text)
+    found = _RECORD.findall(text) + _RW_MARKED.findall(text) + _RW_BARE.findall(text)
+    return list(dict.fromkeys(found))
 
 
 def commits_in(text: str) -> list[str]:

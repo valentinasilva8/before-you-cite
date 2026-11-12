@@ -28,6 +28,25 @@ def test_regenerate_once_then_strip():
     assert "fine" not in text.casefold()
 
 
+def test_retraction_watch_number_not_in_results_is_dropped():
+    draft = (
+        "Retraction Watch #70104 is a retraction for DOI 10.3390/nano10122325. "
+        "Retraction Watch #99999 shows this paper was retracted in 1999. "
+        "Retraction Watch record 88888 is a correction. "
+        "Retraction Watch: 77777 is an expression of concern. "
+        "Retraction Watch 66666 is a retraction."
+    )
+    text = enforce_citations(draft, RESULTS, SNAPSHOT, [], None)
+    assert "70104" in text
+    for invented in ("99999", "88888", "77777", "66666"):
+        assert invented not in text
+
+
+def test_year_after_retraction_watch_is_not_a_record_id():
+    text = strip_units("The Retraction Watch 2026 extract has a notice for this DOI.", corpus_from(RESULTS, SNAPSHOT), [])
+    assert "2026" in text
+
+
 def test_data_limit_sentence_is_kept():
     kept = strip_units(
         "No record is a data limit, not a judgment that the work is reliable.",

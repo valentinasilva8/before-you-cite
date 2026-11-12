@@ -32,7 +32,7 @@ A lead agent plans each turn, researcher agents do the lookups in their own fres
 
 - One paste means many independent lookups. Up to 25 references are split into groups of five, and each group gets its own researcher, so no single context has to hold everything.
 - The jobs need different tools: searching the Retraction Watch file, counting notices for a journal or publisher, and live calls to Crossref and DataCite. Each researcher only has the tools for its job.
-- The writer has no tools, so it can only report what the researchers found. Any DOI, commit, or record id written as "record" and a number must appear in the tool results, or the sentence is dropped. Counts and dates in the writer's sentences are not checked.
+- The writer has no tools, so it can only report what the researchers found. Any DOI, commit, or record id written as "record" or "Retraction Watch" and a number (such as "Retraction Watch #70104") must appear in the tool results, or the sentence is dropped. Counts and dates in the writer's sentences are not checked.
 - Where the answer must be right, code decides. The five result labels are chosen in code from the lookups, and a model cannot pick them.
 - A name can be spelled differently in the file. "Springer Nature" finds 0 notice rows, but the file has "Springer - Nature Publishing Group". Code finds names in the file that share its words, and the lead judges which one is the same publisher, so a sister journal such as "PNAS Nexus" is not counted as "PNAS".
 
