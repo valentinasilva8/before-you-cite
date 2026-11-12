@@ -2,10 +2,12 @@ import json
 
 import re
 
+import pytest
+
 from retraction_agent.catalog import get_catalog
 from retraction_agent.orchestrate import _format_top_publishers, handle_turn
 from retraction_agent.identity import EXISTS_NO_INTEGRITY
-from retraction_agent.planning import parse_references
+from retraction_agent.planning import names_only_a_person, parse_references
 from retraction_agent.samples import INTEGRITY_SAMPLE, SAMPLE_1_TURN_1, SAMPLE_1_TURN_2, SAMPLE_3
 from tests.fakes import DRAFT, FakeCrossref, Reply, ToolCall, TracingCatalog, scripted_complete
 
@@ -126,6 +128,33 @@ def test_vague_topic_asks_and_does_not_research():
     )
     assert "Which paper" in result["response"]
     assert not any(call["name"].startswith("rw_") or call["name"].startswith("crossref_") for call in result["tool_calls"])
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Is CRISPR research retracted a lot?",
+        "Are COVID papers retracted often?",
+        "Were any Hindawi papers retracted in 2023?",
+        "How many retractions does Elsevier have?",
+        "Do Nature papers get retracted?",
+    ],
+)
+def test_a_topic_question_gets_the_lead_question_not_the_name_refusal(message):
+    assert not names_only_a_person(message)
+
+    def complete(messages, tools):
+        if messages[0]["content"].startswith("You are the lead"):
+            return Reply("", [ToolCall("submit_plan", {"action": "ask", "ask": "Which journal or publisher do you mean?"})])
+        raise AssertionError("researchers should not run")
+
+    result = handle_turn({"messages": []}, message, complete_fn=complete, catalog=get_catalog(), crossref=FakeCrossref())
+    assert result["response"] == "Which journal or publisher do you mean?"
+
+
+@pytest.mark.parametrize("message", ["Check Ayman M Atta", "Is John Smith retracted?", "Check John Smith"])
+def test_a_person_name_still_gets_the_name_refusal(message):
+    assert names_only_a_person(message)
 
 
 def test_casefold_journal_is_the_second_research_round():
